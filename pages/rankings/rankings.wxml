@@ -1,0 +1,13 @@
+<navigation-bar title="非遗传承排行榜" color="#24342D" background="#F7F4EC"></navigation-bar>
+<view class="page">
+  <view class="rank-tabs surface">
+    <view class="rank-tab {{type === 'total' ? 'rank-tab--active' : ''}}" data-type="total" bindtap="switchType">总榜</view>
+    <view class="rank-tab {{type === 'weekly' ? 'rank-tab--active' : ''}}" data-type="weekly" bindtap="switchType">周榜</view>
+  </view>
+  <view wx:if="{{loading}}" class="empty-state">正在加载榜单...</view>
+  <view wx:elif="{{data && data.items.length === 0}}" class="surface empty-state">榜单数据准备中</view>
+  <view wx:else class="rank-list">
+    <view wx:for="{{data.items}}" wx:key="userId" class="rank-item surface"><text>{{index + 1}}</text><text>{{item.nickname}}</text><text>{{item.score}}</text></view>
+  </view>
+  <view wx:if="{{data && data.updatedAt}}" class="rank-updated">更新时间：{{data.updatedAt}}</view>
+</view>

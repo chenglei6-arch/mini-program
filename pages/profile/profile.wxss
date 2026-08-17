@@ -1,0 +1,21 @@
+.profile-head { display: flex; align-items: center; margin-top: 28rpx; padding: 30rpx; }
+.avatar-button { width: 112rpx; height: 112rpx; margin: 0 26rpx 0 0; padding: 0; border-radius: 50%; background: transparent; }
+.avatar-button::after { border: 0; }
+.avatar { display: flex; align-items: center; justify-content: center; width: 112rpx; height: 112rpx; border-radius: 50%; }
+.avatar--empty { background: #dbe7dc; color: #1f5c46; font-size: 24rpx; }
+.profile-identity { flex: 1; }
+.nickname-input { height: 56rpx; color: #24342d; font-size: 34rpx; font-weight: 700; }
+.profile-label { margin-top: 6rpx; color: #7b877f; font-size: 22rpx; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); padding: 28rpx 12rpx; }
+.stat { border-right: 1rpx solid #e7e2d7; text-align: center; }
+.stat:last-child { border-right: 0; }
+.stat__value { color: #1f5c46; font-size: 36rpx; font-weight: 700; }
+.stat__label { margin-top: 4rpx; color: #7b877f; font-size: 23rpx; }
+.badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28rpx 12rpx; padding: 28rpx 18rpx; }
+.badge { color: #a7aea7; text-align: center; }
+.badge--active { color: #bc7b2a; }
+.badge__mark { width: 70rpx; height: 70rpx; margin: 0 auto; border: 2rpx solid currentColor; border-radius: 50%; font-size: 24rpx; line-height: 70rpx; }
+.badge__name { margin-top: 8rpx; font-size: 21rpx; }
+.menu { padding: 0 28rpx; }
+.menu-item { display: flex; align-items: center; justify-content: space-between; min-height: 92rpx; border-bottom: 1rpx solid #eee9df; color: #3f5047; }
+.menu-item:last-child { border-bottom: 0; }

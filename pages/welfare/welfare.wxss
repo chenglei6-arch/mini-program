@@ -1,0 +1,8 @@
+.fund-hero { margin-top: 28rpx; padding: 42rpx 32rpx; background: #1f5c46; border: 0; color: #fff; }
+.fund-hero__label { color: #c9ddcd; font-size: 25rpx; }
+.fund-hero__amount { margin-top: 16rpx; color: #f1d39d; font-size: 52rpx; font-weight: 700; }
+.fund-hero__date { margin-top: 28rpx; color: #b8cfbd; font-size: 22rpx; }
+.report { display: flex; justify-content: space-between; margin-top: 14rpx; padding: 24rpx; }
+.welfare-notice { padding: 28rpx; }
+.welfare-notice__title { font-size: 30rpx; font-weight: 700; }
+.welfare-notice__copy { margin-top: 10rpx; color: #6f7a72; font-size: 25rpx; }

@@ -1,0 +1,63 @@
+<navigation-bar title="纸韵蛙鸣" back="{{false}}" color="#24342D" background="#F7F4EC"></navigation-bar>
+
+<scroll-view class="page" scroll-y refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="loadSummary">
+  <view wx:if="{{loading}}" class="empty-state">正在加载内容...</view>
+
+  <block wx:if="{{!loading && summary}}">
+    <view class="brand surface">
+      <view class="brand__name">{{summary.brand}}</view>
+      <view class="brand__slogan">{{summary.slogan}}</view>
+      <view class="brand__note">一场关于剪纸、说部与长白山林蛙的文化探索</view>
+    </view>
+
+    <view class="fund surface" bindtap="openWelfare">
+      <view>
+        <view class="fund__label">公益基金池</view>
+        <view class="fund__amount">¥ {{summary.fundAmount}}</view>
+      </view>
+      <view class="fund__action">查看公示 ></view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">
+        <text class="section-title__main">三款游戏</text>
+        <text class="section-title__sub">免费体验</text>
+      </view>
+      <view class="games">
+        <view wx:for="{{summary.games}}" wx:key="id" class="game-card surface" data-path="{{item.path}}" bindtap="openGame">
+          <view class="game-card__index">0{{index + 1}}</view>
+          <view class="game-card__title">{{item.title}}</view>
+          <view class="game-card__subtitle">{{item.subtitle}}</view>
+          <view class="game-card__link">开始体验 ></view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section">
+      <view class="section-title">
+        <text class="section-title__main">林蛙角色墙</text>
+        <text class="section-title__sub">{{summary.frogs.length}} 个角色</text>
+      </view>
+      <view class="frog-grid surface">
+        <view wx:for="{{summary.frogs}}" wx:key="id" class="frog-item {{item.unlocked ? 'frog-item--active' : ''}}">
+          <view class="frog-item__avatar">{{item.unlocked ? item.shortName : '锁'}}</view>
+          <view class="frog-item__name">{{item.name}}</view>
+          <view class="frog-item__pattern">{{item.pattern}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section activity surface">
+      <view class="section-title">
+        <text class="section-title__main">蛙友动态</text>
+        <text class="section-title__sub" bindtap="openRankings">查看榜单 ></text>
+      </view>
+      <view wx:for="{{summary.activity}}" wx:key="*this" class="activity__item">{{item}}</view>
+    </view>
+
+    <view class="section home-actions">
+      <button class="primary-button" bindtap="scanUnlock">扫码解锁</button>
+      <button class="ghost-button" bindtap="openWelfare">公益与徽章</button>
+    </view>
+  </block>
+</scroll-view>

@@ -1,0 +1,19 @@
+<navigation-bar title="扫码解锁" color="#24342D" background="#F7F4EC"></navigation-bar>
+<view class="page scan-page">
+  <view class="scan-intro surface">
+    <view class="scan-intro__title">解锁角色故事</view>
+    <view class="scan-intro__copy">扫描盲盒内的唯一二维码，获取角色故事、音频和进阶游戏。</view>
+  </view>
+  <view class="scan-frame">
+    <view class="scan-frame__corner scan-frame__corner--tl"></view>
+    <view class="scan-frame__corner scan-frame__corner--tr"></view>
+    <view class="scan-frame__corner scan-frame__corner--bl"></view>
+    <view class="scan-frame__corner scan-frame__corner--br"></view>
+    <view class="scan-frame__line"></view>
+  </view>
+  <button class="primary-button" loading="{{loading}}" bindtap="startScan">扫描二维码</button>
+  <view wx:if="{{result}}" class="scan-result surface">
+    <view class="scan-result__title">{{result.message}}</view>
+    <view class="scan-result__copy">角色：{{result.characterName}}</view>
+  </view>
+</view>

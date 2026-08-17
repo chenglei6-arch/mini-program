@@ -1,0 +1,14 @@
+.scan-page { padding-top: 30rpx; }
+.scan-intro { padding: 30rpx; }
+.scan-intro__title { font-size: 36rpx; font-weight: 700; }
+.scan-intro__copy { margin-top: 10rpx; color: #6f7a72; font-size: 25rpx; }
+.scan-frame { position: relative; width: 520rpx; height: 520rpx; margin: 54rpx auto; background: #1f2e29; }
+.scan-frame__corner { position: absolute; width: 54rpx; height: 54rpx; border-color: #d4a04a; border-style: solid; }
+.scan-frame__corner--tl { top: 36rpx; left: 36rpx; border-width: 4rpx 0 0 4rpx; }
+.scan-frame__corner--tr { top: 36rpx; right: 36rpx; border-width: 4rpx 4rpx 0 0; }
+.scan-frame__corner--bl { bottom: 36rpx; left: 36rpx; border-width: 0 0 4rpx 4rpx; }
+.scan-frame__corner--br { right: 36rpx; bottom: 36rpx; border-width: 0 4rpx 4rpx 0; }
+.scan-frame__line { position: absolute; top: 50%; right: 60rpx; left: 60rpx; height: 2rpx; background: #d4a04a; }
+.scan-result { margin-top: 24rpx; padding: 28rpx; }
+.scan-result__title { color: #1f5c46; font-size: 30rpx; font-weight: 700; }
+.scan-result__copy { margin-top: 8rpx; color: #6f7a72; }

@@ -1,0 +1,21 @@
+<navigation-bar title="公益与徽章" color="#24342D" background="#F7F4EC"></navigation-bar>
+<scroll-view class="page" scroll-y>
+  <view wx:if="{{loading}}" class="empty-state">正在加载公示...</view>
+  <block wx:if="{{!loading && summary}}">
+    <view class="fund-hero surface">
+      <view class="fund-hero__label">纸韵蛙鸣非遗传承公益基金</view>
+      <view class="fund-hero__amount">¥ {{summary.fundAmount}}</view>
+      <view class="fund-hero__date">最近更新：{{summary.updatedAt}}</view>
+    </view>
+    <view class="section">
+      <view class="section-title"><text class="section-title__main">资金公示</text><text class="section-title__sub">按季度更新</text></view>
+      <view wx:if="{{summary.reports.length === 0}}" class="surface empty-state">公示报告将在审核发布后展示</view>
+      <view wx:for="{{summary.reports}}" wx:key="id" class="report surface"><view>{{item.title}}</view><view class="muted">{{item.date}}</view></view>
+    </view>
+    <view class="section welfare-notice surface">
+      <view class="welfare-notice__title">公益规则</view>
+      <view class="welfare-notice__copy">每笔盲盒订单的公益贡献金额、接收主体和使用明细，以正式公示及订单凭证为准。</view>
+    </view>
+    <view class="section"><button class="ghost-button" bindtap="openRankings">查看公益贡献榜</button></view>
+  </block>
+</scroll-view>

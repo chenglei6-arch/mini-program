@@ -1,0 +1,24 @@
+<navigation-bar title="林蛙谷寻踪" color="#24342D" background="#F7F4EC"></navigation-bar>
+<scroll-view class="page" scroll-y>
+  <view class="story-head surface">
+    <view class="story-head__title">林蛙谷寻踪</view>
+    <view class="story-head__copy">跟随哈什蚂穿过五段故事，聆听满族说部中的山林传说。</view>
+  </view>
+
+  <view wx:if="{{!activeChapter}}" class="chapter-list">
+    <view wx:for="{{chapters}}" wx:key="id" class="chapter surface" data-index="{{index}}" bindtap="openChapter">
+      <view class="chapter__number">第 {{item.id}} 章</view>
+      <view class="chapter__title">{{item.title}}</view>
+      <view class="chapter__action">进入故事 ></view>
+    </view>
+  </view>
+
+  <view wx:else class="narrative surface">
+    <view class="narrative__eyebrow">第 {{activeChapter.id}} 章</view>
+    <view class="narrative__title">{{activeChapter.title}}</view>
+    <view class="narrative__body">{{narrative}}</view>
+    <view class="choices">
+      <button wx:for="{{choices}}" wx:key="*this" class="ghost-button choice" data-choice="{{item}}" bindtap="choose">{{item}}</button>
+    </view>
+  </view>
+</scroll-view>

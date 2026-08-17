@@ -1,0 +1,18 @@
+# WeChat Mini Program generated files
+miniprogram_npm/
+node_modules/
+dist/
+coverage/
+.cache/
+
+# Local development files
+project.private.config.json
+.env*
+*.log
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

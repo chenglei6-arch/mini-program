@@ -1,0 +1,33 @@
+<navigation-bar title="指尖剪林蛙" color="#24342D" background="#F7F4EC"></navigation-bar>
+<scroll-view class="page" scroll-y>
+  <view class="game-summary">
+    <text>拼合进度</text>
+    <text>{{placedCount}} / {{pieces.length}}</text>
+  </view>
+
+  <view class="paper-board surface {{completed ? 'paper-board--completed' : ''}}">
+    <view class="frog-outline">
+      <view wx:for="{{pieces}}" wx:key="id" class="frog-slot {{item.placed ? 'frog-slot--filled' : ''}}">
+        <text>{{item.placed ? item.name : index + 1}}</text>
+      </view>
+    </view>
+    <view wx:if="{{completed}}" class="complete-copy">一只完整的林蛙剪纸已经呈现</view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">
+      <text class="section-title__main">传统纹样</text>
+      <text class="section-title__sub">选择纹样完成拼合</text>
+    </view>
+    <view class="piece-list">
+      <button wx:for="{{pieces}}" wx:key="id" class="piece {{item.placed ? 'piece--used' : ''}}" data-index="{{index}}" bindtap="placePiece" disabled="{{item.placed}}">{{item.name}}</button>
+    </view>
+  </view>
+
+  <view class="culture surface">
+    <view class="culture__title">纹样解读</view>
+    <view class="culture__body">纹样内容、出处与传承人审核信息将在素材定稿后由内容服务统一下发。</view>
+  </view>
+
+  <button wx:if="{{completed}}" class="ghost-button reset" bindtap="resetGame">再拼一次</button>
+</scroll-view>

@@ -1,0 +1,13 @@
+.guardian-page { display: flex; flex-direction: column; }
+.guardian-stage { display: flex; flex: none; flex-direction: column; align-items: center; justify-content: center; min-height: 520rpx; margin-top: 30rpx; padding: 32rpx; background: #e7efe6; }
+.guardian-stage__empty, .guardian-stage__loading { color: #6f7a72; }
+.guardian-avatar { display: flex; align-items: center; justify-content: center; width: 220rpx; height: 220rpx; border: 2rpx solid #1f5c46; border-radius: 50%; color: #1f5c46; font-size: 32rpx; font-weight: 700; }
+.guardian-name { margin-top: 28rpx; font-size: 38rpx; font-weight: 700; }
+.guardian-copy { margin-top: 8rpx; color: #6f7a72; font-size: 24rpx; }
+.guardian-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; margin-top: 24rpx; }
+.guardian-options button { margin: 0; }
+.guardian-card { margin-top: 24rpx; padding: 34rpx; text-align: center; }
+.guardian-card__label { color: #bc7b2a; font-size: 22rpx; }
+.guardian-card__name { margin-top: 8rpx; font-size: 36rpx; font-weight: 700; }
+.guardian-card__pattern { margin-top: 6rpx; color: #1f5c46; }
+.draw-button { width: 100%; margin-top: 28rpx; }
