@@ -1,4 +1,5 @@
-const { patterns } = require('../../../constants')
+// 小程序运行时不做目录 index.js 自动解析，使用显式模块文件路径。
+const { patterns } = require('../../../constants/index.js')
 const gameService = require('../../../services/games')
 
 Component({
