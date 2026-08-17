@@ -9,6 +9,14 @@ coverage/
 project.private.config.json
 .env*
 *.log
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+credentials/
+*.secret.*
 
 # OS/editor files
 .DS_Store
