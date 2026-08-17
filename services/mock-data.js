@@ -1,4 +1,5 @@
-const { games, patterns } = require('../constants')
+// 微信小程序模块解析不保证 Node.js 的目录 index.js 自动解析，使用显式路径。
+const { games, patterns } = require('../constants/index.js')
 
 const frogs = [
   { id: 'forest', name: '护林蛙', shortName: '护', pattern: '山林纹', unlocked: true },

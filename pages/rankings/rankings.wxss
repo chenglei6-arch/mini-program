@@ -1,6 +1,6 @@
 .rank-tabs { display: flex; margin-top: 28rpx; padding: 8rpx; }
 .rank-tab { flex: 1; padding: 18rpx; border-radius: 8rpx; color: #6f7a72; text-align: center; }
 .rank-tab--active { background: #1f5c46; color: #fff; }
-.rank-list { display: grid; gap: 12rpx; margin-top: 24rpx; }
-.rank-item { display: grid; grid-template-columns: 70rpx 1fr 120rpx; align-items: center; padding: 24rpx; }
+.rank-list { margin-top: 24rpx; }
+.rank-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12rpx; padding: 24rpx; }
 .rank-updated { margin-top: 20rpx; color: #879189; font-size: 22rpx; text-align: center; }

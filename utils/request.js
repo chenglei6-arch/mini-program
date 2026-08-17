@@ -12,6 +12,7 @@ function clearToken() {
 }
 
 function buildUrl(path) {
+  // 允许服务层传入完整 URL，同时阻止未配置环境时误发请求。
   if (/^https?:\/\//.test(path)) return path
   if (!env.baseUrl) {
     const error = new Error('API base URL is not configured')

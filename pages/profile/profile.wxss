@@ -6,13 +6,15 @@
 .profile-identity { flex: 1; }
 .nickname-input { height: 56rpx; color: #24342d; font-size: 34rpx; font-weight: 700; }
 .profile-label { margin-top: 6rpx; color: #7b877f; font-size: 22rpx; }
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); padding: 28rpx 12rpx; }
+.stats { display: flex; padding: 28rpx 12rpx; }
 .stat { border-right: 1rpx solid #e7e2d7; text-align: center; }
+.stat { flex: 1; }
 .stat:last-child { border-right: 0; }
 .stat__value { color: #1f5c46; font-size: 36rpx; font-weight: 700; }
 .stat__label { margin-top: 4rpx; color: #7b877f; font-size: 23rpx; }
-.badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28rpx 12rpx; padding: 28rpx 18rpx; }
+.badge-grid { display: flex; flex-wrap: wrap; padding: 28rpx 18rpx; }
 .badge { color: #a7aea7; text-align: center; }
+.badge { width: 33.333%; margin-bottom: 28rpx; }
 .badge--active { color: #bc7b2a; }
 .badge__mark { width: 70rpx; height: 70rpx; margin: 0 auto; border: 2rpx solid currentColor; border-radius: 50%; font-size: 24rpx; line-height: 70rpx; }
 .badge__name { margin-top: 8rpx; font-size: 21rpx; }

@@ -20,6 +20,7 @@ function login() {
     storage.set(USER_KEY, user)
     return Promise.resolve(user)
   }
+  // 业务服务端必须用 code 换取自己的 Token，客户端不接触 session_key。
   return new Promise((resolve, reject) => {
     wx.login({
       success: ({ code }) => {

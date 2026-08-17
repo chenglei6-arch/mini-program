@@ -14,6 +14,7 @@ Component({
       this.setData({ drawing: true, frog: null, options: [], result: '' })
       wx.vibrateShort({ type: 'medium' })
       setTimeout(() => {
+        // 角色抽取由服务端负责正式概率和次数校验；这里仅提供可操作的本地演示。
         const frog = mock.frogs[Math.floor(Math.random() * mock.frogs.length)]
         const alternatives = mock.frogs.filter((item) => item.pattern !== frog.pattern).slice(0, 2).map((item) => item.pattern)
         const options = [frog.pattern, ...alternatives].sort(() => Math.random() - 0.5)

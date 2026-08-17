@@ -22,14 +22,16 @@
 .fund__amount { margin-top: 4rpx; color: #bc7b2a; font-size: 38rpx; font-weight: 700; }
 .fund__action, .game-card__link { color: #1f5c46; font-size: 24rpx; }
 
-.games { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16rpx; }
-.game-card { min-height: 250rpx; padding: 20rpx; }
+/* Flex is supported consistently by Skyline and WebView renderers. */
+.games { display: flex; flex-wrap: wrap; justify-content: space-between; }
+.game-card { width: 31.8%; min-height: 250rpx; margin-bottom: 16rpx; padding: 20rpx; box-sizing: border-box; }
 .game-card__index { color: #bc7b2a; font-family: Georgia, serif; font-size: 28rpx; }
 .game-card__title { margin-top: 42rpx; color: #24342d; font-size: 29rpx; font-weight: 700; }
 .game-card__subtitle { min-height: 72rpx; margin-top: 8rpx; color: #7b877f; font-size: 22rpx; }
 
-.frog-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20rpx 10rpx; padding: 24rpx 16rpx; }
+.frog-grid { display: flex; flex-wrap: wrap; padding: 24rpx 16rpx; }
 .frog-item { color: #a7aea7; font-size: 20rpx; text-align: center; }
+.frog-item { width: 20%; margin-bottom: 20rpx; }
 .frog-item--active { color: #1f5c46; }
 .frog-item__avatar { width: 74rpx; height: 74rpx; margin: 0 auto 8rpx; border: 1rpx solid currentColor; border-radius: 50%; font-size: 26rpx; line-height: 74rpx; }
 .frog-item__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -37,4 +39,5 @@
 
 .activity { padding: 24rpx 28rpx; }
 .activity__item { padding: 14rpx 0; border-top: 1rpx solid #eee9df; color: #5e6a62; font-size: 24rpx; }
-.home-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; padding-bottom: 24rpx; }
+.home-actions { display: flex; justify-content: space-between; padding-bottom: 24rpx; }
+.home-actions button { width: 48%; margin: 0; }
