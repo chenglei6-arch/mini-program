@@ -5,23 +5,23 @@
     <text>{{placedCount}} / {{pieces.length}}</text>
   </view>
 
-  <view class="paper-board surface {{completed ? 'paper-board--completed' : ''}}">
-    <view class="frog-outline">
-      <view wx:for="{{pieces}}" wx:key="id" class="frog-slot {{item.placed ? 'frog-slot--filled' : ''}}">
-        <text>{{item.placed ? item.name : index + 1}}</text>
+  <view wx:if="{{ready}}" class="puzzle-stage surface {{completed ? 'puzzle-stage--completed' : ''}}">
+    <movable-area class="puzzle-area" style="width: {{stageWidth}}px; height: {{stageHeight}}px;">
+      <view class="board-backdrop" style="width: {{stageWidth}}px; height: {{boardHeight}}px;"></view>
+      <view wx:for="{{slots}}" wx:key="id" class="frog-slot {{item.filled ? 'frog-slot--filled' : ''}}" style="left: {{item.left}}px; top: {{item.top}}px; width: {{item.width}}px; height: {{item.height}}px;">
+        <text>{{item.filled ? item.filledName : item.number}}</text>
       </view>
-    </view>
-    <view wx:if="{{completed}}" class="complete-copy">一只完整的林蛙剪纸已经呈现</view>
-  </view>
 
-  <view class="section">
-    <view class="section-title">
-      <text class="section-title__main">传统纹样</text>
-      <text class="section-title__sub">选择纹样完成拼合</text>
-    </view>
-    <view class="piece-list">
-      <button wx:for="{{pieces}}" wx:key="id" class="piece {{item.placed ? 'piece--used' : ''}}" data-index="{{index}}" bindtap="placePiece" disabled="{{item.placed}}">{{item.name}}</button>
-    </view>
+      <view class="palette-title" style="top: {{paletteTitleTop}}px;">传统纹样</view>
+      <view class="palette-subtitle" style="top: {{paletteSubtitleTop}}px;">拖动纹样碎片到对应槽位</view>
+
+      <movable-view wx:for="{{pieces}}" wx:key="id" class="piece {{item.placed ? 'piece--used' : ''}}" style="width: {{item.width}}px; height: {{item.height}}px;" direction="all" inertia="{{false}}" x="{{item.x}}" y="{{item.y}}" data-index="{{index}}" disabled="{{item.placed}}" bindtouchstart="onPieceTouchStart" bindchange="onPieceChange" bindtouchend="onPieceTouchEnd">
+        <view class="piece__content">
+          <text class="piece__symbol">{{item.symbol}}</text>
+          <text class="piece__name">{{item.name}}</text>
+        </view>
+      </movable-view>
+    </movable-area>
   </view>
 
   <view class="culture surface">
