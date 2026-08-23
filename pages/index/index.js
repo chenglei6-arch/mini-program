@@ -1,3 +1,4 @@
+const auth = require('../../utils/auth')
 const homeService = require('../../services/home')
 
 Component({
@@ -14,9 +15,10 @@ Component({
   methods: {
     loadSummary() {
       this.setData({ loading: true, refreshing: true })
-      homeService.getHomeSummary()
+      auth.ensureLogin()
+        .then(() => homeService.getHomeSummary())
         .then((summary) => this.setData({ summary }))
-        .catch(() => wx.showToast({ title: '首页内容加载失败', icon: 'none' }))
+        .catch((error) => wx.showToast({ title: error.message || '首页内容加载失败', icon: 'none' }))
         .finally(() => this.setData({ loading: false, refreshing: false }))
     },
     openGame(event) {

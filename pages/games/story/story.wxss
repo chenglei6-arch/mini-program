@@ -8,6 +8,7 @@
 .narrative__eyebrow { color: #bc7b2a; font-size: 23rpx; }
 .narrative__title { margin-top: 8rpx; font-size: 36rpx; font-weight: 700; }
 .narrative__body { margin-top: 34rpx; color: #3f5047; font-size: 29rpx; line-height: 1.9; }
+.narrative__paragraph + .narrative__paragraph { margin-top: 18rpx; }
 .choices { margin-top: 42rpx; }
 .choice { width: 100%; min-height: 92rpx; margin: 0 0 16rpx; padding: 14rpx 22rpx; line-height: 1.45; text-align: left; }
 .choice__label { font-size: 28rpx; font-weight: 600; }

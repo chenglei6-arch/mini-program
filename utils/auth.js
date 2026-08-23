@@ -38,7 +38,8 @@ function login() {
 }
 
 function ensureLogin() {
-  return getUser() ? Promise.resolve(getUser()) : login()
+  const user = getUser()
+  return user && request.getToken() ? Promise.resolve(user) : login()
 }
 
 function logout() {

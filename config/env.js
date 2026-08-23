@@ -1,8 +1,8 @@
 const environments = {
   development: {
     name: 'development',
-    baseUrl: '',
-    useMock: true,
+    baseUrl: 'http://localhost:8080',
+    useMock: false,
     timeout: 10000,
   },
   staging: {

@@ -1,3 +1,4 @@
+const auth = require('../../../utils/auth')
 const gameService = require('../../../services/games')
 
 Component({
@@ -12,7 +13,10 @@ Component({
 
   lifetimes: {
     attached() {
-      this.loadStory()
+      auth.ensureLogin().then(() => this.loadStory()).catch((error) => {
+        this.setData({ loading: false })
+        wx.showToast({ title: error.message || '登录失败，请稍后重试', icon: 'none' })
+      })
     },
   },
 
