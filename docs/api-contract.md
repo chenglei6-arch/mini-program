@@ -9,6 +9,7 @@
 - 成功响应建议：`{ "code": 0, "data": {}, "message": "ok", "requestId": "..." }`。
 - 失败响应建议：`{ "code": "BUSINESS_CODE", "data": null, "message": "...", "requestId": "..." }`。
 - 所有写操作需要幂等键或业务唯一键；支付回调必须幂等。
+- 故事游戏事件使用 `{ "type": "story_choice", "payload": { "choiceId": "A" } }`，进度中的 `state.sceneId`、`state.sceneTitle`、`state.sceneText`、`state.choices` 和 `state.ending` 由服务端返回，客户端不得自行推导结局条件。
 
 ## 页面依赖接口
 
@@ -17,7 +18,7 @@
 | 微信登录 | POST | `/v1/auth/wechat-login` | code 换取业务 Token |
 | 首页聚合 | GET | `/v1/home/summary` | 基金、游戏、角色、动态 |
 | 游戏进度 | GET | `/v1/games/{gameId}/progress` | 断点续玩 |
-| 游戏事件 | POST | `/v1/games/{gameId}/events` | 服务端校验和去重 |
+| 游戏事件 | POST | `/v1/games/{gameId}/events` | 服务端校验和去重；故事游戏使用 `story_choice` 事件 |
 | 扫码核销 | POST | `/v1/unlocks/redeem` | 唯一码一次性核销 |
 | 用户资料 | GET/PATCH | `/v1/me/profile` | 头像、昵称 |
 | 公益摘要 | GET | `/v1/welfare/summary` | 基金金额和公示报告 |

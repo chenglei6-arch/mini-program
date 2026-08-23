@@ -1,16 +1,24 @@
 .story-head { margin-top: 28rpx; padding: 34rpx; background: #28463a; border: 0; color: #fff; }
 .story-head__title { font-size: 38rpx; font-weight: 700; }
 .story-head__copy { margin-top: 12rpx; color: #c8d7cf; font-size: 25rpx; }
-.chapter-list { margin-top: 24rpx; }
-.chapter { position: relative; padding: 28rpx; }
-.chapter { margin-bottom: 16rpx; }
-.chapter__number { color: #bc7b2a; font-size: 22rpx; }
-.chapter__title { margin-top: 8rpx; font-size: 31rpx; font-weight: 700; }
-.chapter__action { position: absolute; right: 28rpx; bottom: 30rpx; color: #1f5c46; font-size: 23rpx; }
+.route-dots { display: flex; gap: 12rpx; margin-top: 24rpx; }
+.route-dot { display: flex; align-items: center; justify-content: center; width: 48rpx; height: 48rpx; border: 1rpx solid #83a494; border-radius: 50%; color: #dbe9e1; font-size: 22rpx; }
+.route-dot--done { background: #d5a75b; border-color: #d5a75b; color: #28463a; }
 .narrative { margin-top: 24rpx; padding: 36rpx 30rpx; }
 .narrative__eyebrow { color: #bc7b2a; font-size: 23rpx; }
 .narrative__title { margin-top: 8rpx; font-size: 36rpx; font-weight: 700; }
-.narrative__body { margin-top: 42rpx; color: #3f5047; font-size: 29rpx; line-height: 1.9; }
-.choices { margin-top: 48rpx; }
-.choice { width: 100%; margin: 0; }
-.choice { margin-bottom: 16rpx; }
+.narrative__body { margin-top: 34rpx; color: #3f5047; font-size: 29rpx; line-height: 1.9; }
+.choices { margin-top: 42rpx; }
+.choice { width: 100%; min-height: 92rpx; margin: 0 0 16rpx; padding: 14rpx 22rpx; line-height: 1.45; text-align: left; }
+.choice__label { font-size: 28rpx; font-weight: 600; }
+.choice__hint { margin-top: 6rpx; color: #7b877f; font-size: 22rpx; }
+.ending { margin-top: 36rpx; padding-top: 28rpx; border-top: 1rpx solid #e7e2d7; }
+.ending__label { color: #bc7b2a; font-size: 22rpx; }
+.ending__title { margin-top: 8rpx; font-size: 32rpx; font-weight: 700; }
+.ending__text { margin-top: 12rpx; color: #3f5047; line-height: 1.8; }
+.story-meta { margin-top: 24rpx; }
+.meta-block { margin-bottom: 16rpx; padding: 24rpx 28rpx; }
+.meta-block__title { color: #bc7b2a; font-size: 23rpx; font-weight: 700; }
+.meta-block__item { display: inline-block; margin: 12rpx 12rpx 0 0; padding: 8rpx 14rpx; background: #f1eee5; border-radius: 6rpx; color: #526158; font-size: 22rpx; }
+.story-actions { margin-top: 24rpx; padding-bottom: 48rpx; }
+.story-actions button { width: 100%; }
