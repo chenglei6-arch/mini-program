@@ -2,6 +2,9 @@ package com.chenglei.miniprogram.integration;
 
 import com.chenglei.miniprogram.auth.DevSessionService;
 import com.chenglei.miniprogram.common.api.ApiResponse;
+import com.chenglei.miniprogram.common.error.BusinessException;
+import com.chenglei.miniprogram.common.error.ErrorCode;
+import com.chenglei.miniprogram.story.StoryGameService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -45,11 +48,13 @@ public class IntegrationController {
         Map.of("id", "guardian-first", "name", "守护神初遇", "level", "bronze", "unlocked", false)
     );
     private final DevSessionService sessions;
+    private final StoryGameService storyGameService;
     private final Map<String, Map<String, Integer>> progress = new ConcurrentHashMap<>();
     private final Map<String, DevSessionService.User> profiles = new ConcurrentHashMap<>();
 
-    public IntegrationController(DevSessionService sessions) {
+    public IntegrationController(DevSessionService sessions, StoryGameService storyGameService) {
         this.sessions = sessions;
+        this.storyGameService = storyGameService;
     }
 
     @GetMapping("/home/summary")
@@ -81,6 +86,7 @@ public class IntegrationController {
     @GetMapping("/games/{gameId}/progress")
     public ApiResponse<Map<String, Object>> gameProgress(Authentication authentication, @PathVariable String gameId) {
         ensureGame(gameId);
+        if (gameId.equals("story")) return ApiResponse.success(storyGameService.progress(authentication));
         int completed = progressFor(authentication, gameId).getOrDefault("completed", 0);
         return ApiResponse.success(Map.of("gameId", gameId, "completed", completed, "total", gameId.equals("story") ? 5 : 1,
             "finished", completed > 0, "version", 1, "updatedAt", Instant.now()));
@@ -91,6 +97,13 @@ public class IntegrationController {
         @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
         @Valid @RequestBody GameEvent event) {
         ensureGame(gameId);
+        if (gameId.equals("story")) {
+            if (event.type().equals("reset")) return ApiResponse.success(storyGameService.reset(authentication));
+            if (!event.type().equals("story_choice") || event.payload() == null || !(event.payload().get("choiceId") instanceof String choiceId)) {
+                throw new BusinessException(ErrorCode.BAD_REQUEST, "故事事件必须包含 choiceId");
+            }
+            return ApiResponse.success(storyGameService.choose(authentication, idempotencyKey, choiceId));
+        }
         Map<String, Integer> state = progressFor(authentication, gameId);
         int completed = "completed".equals(event.type()) || "unlocked".equals(event.type())
             ? 1 : state.getOrDefault("completed", 0);

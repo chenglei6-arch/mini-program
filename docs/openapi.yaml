@@ -544,13 +544,14 @@ components:
       properties:
         type:
           type: string
-          enum: [started, progressed, completed, unlocked, answered]
-        clientOccurredAt:
-          type: string
-          format: date-time
+          enum: [started, progressed, completed, unlocked, answered, story_choice, reset]
         payload:
           type: object
           additionalProperties: true
+          description: 故事事件使用 choiceId，例如 { "choiceId": "A" }。
+        clientOccurredAt:
+          type: string
+          format: date-time
     GameEventResult:
       type: object
       required: [accepted, duplicated, gameId, progress]

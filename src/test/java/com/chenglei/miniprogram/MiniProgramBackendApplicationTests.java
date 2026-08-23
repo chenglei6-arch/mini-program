@@ -92,4 +92,82 @@ class MiniProgramBackendApplicationTests {
             .andExpect(jsonPath("$.data.nickname").value("联调用户"))
             .andExpect(jsonPath("$.data.isGuest").value(false));
     }
+
+    @Test
+    void storyGameExposesStateMachineAndRejectsInvalidChoices() throws Exception {
+        String token = loginToken("story-test-code");
+        resetStory(token);
+
+        mockMvc.perform(get("/v1/games/story/progress").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.gameId").value("story"))
+            .andExpect(jsonPath("$.data.total").value(3))
+            .andExpect(jsonPath("$.data.state.sceneId").value("intro"))
+            .andExpect(jsonPath("$.data.state.choices[0].id").value("A"));
+
+        mockMvc.perform(post("/v1/games/story/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "story-choice-001")
+                .contentType("application/json")
+                .content("{\"type\":\"story_choice\",\"payload\":{\"choiceId\":\"A\"}}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.state.sceneId").value("soul"))
+            .andExpect(jsonPath("$.data.state.currentRoute").value("A"));
+
+        mockMvc.perform(post("/v1/games/story/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "story-choice-002")
+                .contentType("application/json")
+                .content("{\"type\":\"story_choice\",\"payload\":{\"choiceId\":\"final-1\"}}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("COMMON_400"));
+    }
+
+    @Test
+    void storyGameSupportsIdempotencyAndReset() throws Exception {
+        String token = loginToken("story-idempotency-code");
+        resetStory(token);
+        String request = "{\"type\":\"story_choice\",\"payload\":{\"choiceId\":\"A\"}}";
+
+        mockMvc.perform(post("/v1/games/story/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "story-repeat-001")
+                .contentType("application/json")
+                .content(request))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.state.sceneId").value("soul"));
+
+        mockMvc.perform(post("/v1/games/story/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "story-repeat-001")
+                .contentType("application/json")
+                .content(request))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.state.sceneId").value("soul"));
+
+        mockMvc.perform(post("/v1/games/story/events")
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .content("{\"type\":\"reset\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.state.sceneId").value("intro"))
+            .andExpect(jsonPath("$.data.completed").value(0));
+    }
+
+    private String loginToken(String code) throws Exception {
+        MvcResult login = mockMvc.perform(post("/v1/auth/wechat-login")
+                .contentType("application/json")
+                .content("{\"code\":\"" + code + "\"}"))
+            .andExpect(status().isOk())
+            .andReturn();
+        return objectMapper.readTree(login.getResponse().getContentAsString()).path("data").path("accessToken").asText();
+    }
+
+    private void resetStory(String token) throws Exception {
+        mockMvc.perform(post("/v1/games/story/events")
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .content("{\"type\":\"reset\"}"))
+            .andExpect(status().isOk());
+    }
 }
