@@ -34,10 +34,15 @@ public class StoryGameService {
 
     private final Map<String, StoryState> states = new ConcurrentHashMap<>();
     private final Map<String, String> idempotency = new ConcurrentHashMap<>();
+    private final StoryContentCatalog content;
+
+    public StoryGameService(StoryContentCatalog content) {
+        this.content = content;
+    }
 
     public Map<String, Object> progress(Authentication authentication) {
         StoryState state = states.computeIfAbsent(userId(authentication), ignored -> new StoryState());
-        return state.toResponse();
+        return state.toResponse(content);
     }
 
     public synchronized Map<String, Object> reset(Authentication authentication) {
@@ -45,7 +50,7 @@ public class StoryGameService {
         StoryState state = new StoryState();
         states.put(userId, state);
         idempotency.keySet().removeIf(key -> key.startsWith(userId + ":"));
-        return state.toResponse();
+        return state.toResponse(content);
     }
 
     public synchronized Map<String, Object> choose(Authentication authentication, String idempotencyKey, String choiceId) {
@@ -61,12 +66,12 @@ public class StoryGameService {
             if (!previous.equals(choiceId)) {
                 throw new BusinessException(ErrorCode.CONFLICT, "幂等键已经用于其他故事选择");
             }
-            return state.toResponse();
+            return state.toResponse(content);
         }
 
         applyChoice(state, choiceId);
         idempotency.put(operationKey, choiceId);
-        return state.toResponse();
+        return state.toResponse(content);
     }
 
     private void applyChoice(StoryState state, String choiceId) {
@@ -517,6 +522,65 @@ public class StoryGameService {
         return new ArrayList<>(List.of(values));
     }
 
+    private static List<String> encounterOneParagraphs(String route) {
+        if (route.equals("A")) return List.of(
+            "你离开萨满古洞，向红松窝集深处前行。参天红松遮蔽天空，厚厚的松针铺满大地，风中夹杂若有若无的男人吟唱，那是山林篇乌勒本的残响。",
+            "前行半个时辰，路旁出现一处废弃已久的窝集部猎户营地。腐朽的桦树皮帐篷骨架歪斜立在林间，地面散落青铜狩猎牌、兽骨和磨损严重的萨满祭祀陶片。",
+            "你可以完整探查营地、摘抄核心铭文、轻声缅怀后离开，或完全略过遗迹。"
+        );
+        if (route.equals("B")) return List.of(
+            "你顺着河谷蜿蜒向下，奔赴鸭绿江沿岸湿地。荷叶、芦苇和淡水水草的清润气息扑面而来，蛙鸣交织成一片喧闹合唱，风中飘来水泽主题乌勒本的残响。",
+            "水边矗立着一座饱经风雨侵蚀的水神小石祠，石壁上依稀可辨蛙戏莲的剪纸纹样，祠前散落几片残破的桦树皮祭祀牌。",
+            "你可以仔细研读石刻并拾取残牌、粗略查看纹样，或直接略过水神祠。"
+        );
+        return List.of(
+            "你向长白山天池方向攀登，气温断崖式下降，漫山遍野被皑皑厚雪覆盖。寒风穿过雪原，传来苍凉悲壮的冰雪篇乌勒本残响。",
+            "半程雪地上，一处古老祭冰石台半掩在积雪之下。石台刻满萨满冬日冰祭纹路，石缝中遗留着干枯的祭祀桦树枝条。",
+            "你可以完整观察祭冰石台并摘抄祝辞、摘抄片段祝辞，或无视遗迹继续前进。"
+        );
+    }
+
+    private static List<String> encounterTwoParagraphs(String route) {
+        if (route.equals("A")) return List.of(
+            "继续向前，树丛传来剧烈咳嗽声。一棵苍老的红松树下，倚靠着一位白发萨满。他是世间少数还能完整唱诵山林篇乌勒本的传承人。",
+            "老萨满说道：“若是死死锁在深山，后世无人听闻，歌谣便会随我一同埋入黄土；若是任由外人肆意改编，歪曲先民敬畏山林的本心，那又是对祖先的亵渎。”",
+            "他把记录毕生心愿的传承人嘱托竹简交给你：古卷本体务必留于山林故土，副本可以向外流传，但不可歪曲先民敬畏自然的内核。"
+        );
+        if (route.equals("B")) return List.of(
+            "继续前行抵达湿地渡口，大片芦苇随风摇曳。一位衣着考究的外来商人从芦苇荡中走出，目光不停瞟向水下石室。",
+            "商人压低嗓音说道：“若是你可以拿到实体古卷交付于我，我愿意支付丰厚酬金，把古卷包装成高端限量藏品。流入市场，才是让它被世人看见。”",
+            "你可以义正言辞反驳商人，也可以沉默接过火漆封缄的密信，不作任何许诺。"
+        );
+        return List.of(
+            "临近冰封天池的冰缘地带，雪地之下露出半块残破陈旧的手抄古本。纸页冻得发脆，留存着日吉纳格格传说的残片。",
+            "这是很早之前寻访者遗留的抄本，许多诗句已经缺失、模糊。你可以捡起残本仔细阅读，也可以看一眼便路过。"
+        );
+    }
+
+    private static List<String> guardianParagraphs(String route) {
+        if (route.equals("A")) return List.of(
+            "穿过松林，你来到巨型狩猎界碑石前。护林蛙稳稳站在碑石之上，界碑刻满窝集部先民划定的山林禁伐、禁猎条文。石龛内，《山林规约卷》被松绿色地气包裹。",
+            "护林蛙说道：“这卷乌勒本记载伐木有度、采参留籽、不猎幼兽的山林铁律。若带离红松山林，诗意会先褪色，随后灵纹和训诫字句逐步消失，最终归于空白。”",
+            "你可以取走实体古卷，也可以留在原地抄录副本。随后还要决定这份山林歌谣以怎样的面貌面对世间。"
+        );
+        if (route.equals("B")) return List.of(
+            "穿过连片荷塘，水面豁然开阔。荷叶蛙静栖在碧绿荷叶之上，水下石室安放着《水泽灵物卷》，古卷上绘制着蛙戏莲纹样。",
+            "荷叶蛙说道：“此卷咏唱水泽生灵、蛙灵护堰治水与万物共生的往事。水泽水汽是古卷力量的根基，离开石室后，水波纹会逐步干枯卷曲。”",
+            "你可以潜入水下石室取走实体古卷，也可以坐在岸边抄录副本。随后还要决定水泽故事以何种面貌走向人间。"
+        );
+        return List.of(
+            "一望无际的冰封天池铺展在眼前。天池映雪蛙脚踏冰原，身披冰雪剪纸灵纹，冰层裂隙深处安放着《冰雪传说卷》。",
+            "天池映雪蛙说道：“此卷记录日吉纳格格舍身投火山、以血肉镇压火魔的悲壮史诗。它依靠冰渊酷寒维持灵力，离开冰渊后，意境和诗句会一寸寸消融。”",
+            "你可以取走实体古卷，也可以在冰岸之上抄录副本。随后还要决定这份沉重的创世叙事是否允许简化后面向大众。"
+        );
+    }
+
+    private static String chatParagraph(String route) {
+        if (route.equals("A")) return "护林蛙最后提醒你：“藏而不传等于死亡，传而失本等于背叛。”你可以询问先民故事、守龛岁月、传播疑问，或直接返回古洞。";
+        if (route.equals("B")) return "荷叶蛙说道：“流传不等于买卖，二者不可混为一谈。”你可以询问蛙灵护佑、守藏经历、商业化疑问，或直接归途。";
+        return "天池映雪蛙说道：“悲壮不必晦涩，后人读懂这份守护，便是歌谣的延续。”你可以继续询问传说、守藏岁月、简化与传播，或直接返回古洞。";
+    }
+
     private static Map<String, Object> choice(String id, String label, String hint) {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("id", id);
@@ -605,7 +669,7 @@ public class StoryGameService {
             ending = null;
         }
 
-        private Map<String, Object> toResponse() {
+        private Map<String, Object> toResponse(StoryContentCatalog content) {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("gameId", GAME_ID);
             response.put("completed", completedRoutes.size());
@@ -618,6 +682,7 @@ public class StoryGameService {
             state.put("sceneId", sceneId);
             state.put("sceneTitle", sceneTitle);
             state.put("sceneText", sceneText);
+            state.put("sceneParagraphs", content.paragraphs(contentKey()));
             state.put("speaker", speaker);
             state.put("choices", choices);
             state.put("currentRoute", currentRoute);
@@ -634,6 +699,25 @@ public class StoryGameService {
             state.put("ending", ending);
             response.put("state", state);
             return response;
+        }
+
+        private String contentKey() {
+            return switch (sceneId) {
+                case "intro" -> "intro";
+                case "soul" -> "soul";
+                case "order" -> routeOrder.size() < 2 ? "order-default" : "order-" + routeOrder.get(routeOrder.size() - 2) + "-" + currentRoute;
+                case "encounter-1" -> "encounter-1-" + currentRoute;
+                case "encounter-2" -> "encounter-2-" + currentRoute;
+                case "guardian" -> "guardian-" + currentRoute;
+                case "propagation" -> "propagation";
+                case "chat" -> "chat-" + currentRoute;
+                case "vision" -> "vision";
+                case "hub" -> completedRoutes.isEmpty() ? "hub-empty" : "hub-progress";
+                case "finale" -> "finale";
+                case "game-over" -> "game-over-" + currentRoute;
+                case "ending" -> "ending-" + (ending == null ? "11" : ending.get("id"));
+                default -> "";
+            };
         }
     }
 }

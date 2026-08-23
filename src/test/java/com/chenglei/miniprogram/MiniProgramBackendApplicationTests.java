@@ -103,6 +103,8 @@ class MiniProgramBackendApplicationTests {
             .andExpect(jsonPath("$.data.gameId").value("story"))
             .andExpect(jsonPath("$.data.total").value(3))
             .andExpect(jsonPath("$.data.state.sceneId").value("intro"))
+            .andExpect(jsonPath("$.data.state.sceneParagraphs.length()").value(15))
+            .andExpect(jsonPath("$.data.state.sceneParagraphs[0]").value("穿过缠绕盘结的老藤山隘，厚重的藤蔓如同幕布向两侧缓缓分开，露出幽深的萨满古洞入口。洞口岩壁历经数百年风霜侵蚀，层层叠叠拓印着萨满祭祀剪纸：哈什玛蛙纹、万字松枝护佑纹、蛙戏莲水纹、冰雪云纹。不少纹样雨水冲刷斑驳残缺，部分只剩下浅浅凹痕。"))
             .andExpect(jsonPath("$.data.state.choices[0].id").value("A"));
 
         mockMvc.perform(post("/v1/games/story/events")
