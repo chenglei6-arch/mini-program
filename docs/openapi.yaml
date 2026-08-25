@@ -18,6 +18,7 @@ tags:
   - name: 解锁
   - name: 排行榜
   - name: 公益
+  - name: 内容
   - name: 系统
 paths:
   /v1/auth/wechat-login:
@@ -57,6 +58,40 @@ paths:
                 $ref: '#/components/schemas/HomeSummaryResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /v1/content/frogs:
+    get:
+      tags: [内容]
+      summary: 获取林蛙角色与素材清单
+      operationId: getFrogAssets
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrogAssetResponse'
+  /v1/content/frogs/{frogId}:
+    get:
+      tags: [内容]
+      summary: 获取单只林蛙详情
+      operationId: getFrogDetail
+      parameters:
+        - name: frogId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrogDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/me/profile:
     get:
       tags: [用户]
@@ -389,7 +424,7 @@ components:
           type: string
     Frog:
       type: object
-      required: [id, name, shortName, pattern, unlocked]
+      required: [id, name, shortName, pattern, blessing, assetUrl, sourceUrl, unlocked]
       properties:
         id:
           type: string
@@ -399,8 +434,47 @@ components:
           type: string
         pattern:
           type: string
+        blessing:
+          type: string
+        assetUrl:
+          type: string
+          format: uri-reference
+        sourceUrl:
+          type: string
+          format: uri-reference
         unlocked:
           type: boolean
+    FrogAssetResponse:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Frog'
+        total:
+          type: integer
+          minimum: 0
+    FrogDetailSection:
+      type: object
+      required: [heading, paragraphs]
+      properties:
+        heading:
+          type: string
+        paragraphs:
+          type: array
+          items:
+            type: string
+    FrogDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/Frog'
+        - type: object
+          required: [sections]
+          properties:
+            sections:
+              type: array
+              items:
+                $ref: '#/components/schemas/FrogDetailSection'
     HomeSummary:
       type: object
       required: [brand, slogan, fundAmount, fundUpdateAt, games, frogs, patterns, activity]
@@ -548,7 +622,7 @@ components:
         payload:
           type: object
           additionalProperties: true
-          description: 故事事件使用 choiceId，例如 { "choiceId": "A" }。
+          description: '故事事件使用 choiceId，例如 { "choiceId": "A" }。'
         clientOccurredAt:
           type: string
           format: date-time

@@ -6,12 +6,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.chenglei.miniprogram.integration.ContentCatalogMapper;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,6 +28,9 @@ class MiniProgramBackendApplicationTests {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private ContentCatalogMapper contentCatalogMapper;
 
     @Test
     void contextLoadsAndPingEndpointResponds() throws Exception {
@@ -59,11 +64,58 @@ class MiniProgramBackendApplicationTests {
         mockMvc.perform(get("/v1/home/summary").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.brand").value("纸韵蛙鸣·哈什蚂传奇"))
-            .andExpect(jsonPath("$.data.games").isArray());
+            .andExpect(jsonPath("$.data.games").isArray())
+            .andExpect(jsonPath("$.data.frogs[0].assetUrl").value("/assets/frogs/forest.png"));
+
+
+        mockMvc.perform(get("/v1/content/frogs").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.total").value(10))
+            .andExpect(jsonPath("$.data.items[8].pattern").value("空气纹"))
+            .andExpect(jsonPath("$.data.items[9].name").value("林蛙测试数据-001"));
+
+        org.junit.jupiter.api.Assertions.assertEquals(1, contentCatalogMapper.countTestFrogs());
+        org.junit.jupiter.api.Assertions.assertEquals(9, contentCatalogMapper.selectFrogs(false).size());
+        org.junit.jupiter.api.Assertions.assertEquals(10, contentCatalogMapper.selectFrogs(true).size());
+
+        mockMvc.perform(get("/v1/content/frogs/hibernation").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.name").value("冬眠蛙"))
+            .andExpect(jsonPath("$.data.assetUrl").value("/assets/frogs/hibernation.png"))
+            .andExpect(jsonPath("$.data.sourceUrl").value("/assets/sources/frogs/hibernation.docx"))
+            .andExpect(jsonPath("$.data.sections[0].heading").value("一、整体构图"))
+            .andExpect(jsonPath("$.data.sections[0].paragraphs[0]").isString());
+
+        mockMvc.perform(get("/assets/frogs/forest.png"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType("image/png"));
+
+        mockMvc.perform(get("/assets/sources/frogs/hibernation.docx"))
+            .andExpect(status().isOk());
 
         mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.user.id").value("local-user"));
+            .andExpect(jsonPath("$.data.user.id").value("local-user"))
+            .andExpect(jsonPath("$.data.stats.frogs").value(1));
+
+        mockMvc.perform(get("/v1/welfare/summary").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.fundAmount").value("12,480.00"));
+
+        mockMvc.perform(post("/v1/unlocks/redeem")
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .content("{\"code\":\"local-test-code\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.accepted").value(true))
+            .andExpect(jsonPath("$.data.characterName").value("护林蛙"));
+
+        mockMvc.perform(get("/v1/rankings?type=total").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.type").value("total"))
+            .andExpect(jsonPath("$.data.items").isArray())
+            .andExpect(jsonPath("$.data.updatedAt").isNotEmpty())
+            .andExpect(jsonPath("$.data.myRank").doesNotExist());
 
         mockMvc.perform(post("/v1/games/paper-cutting/events")
                 .header("Authorization", "Bearer " + token)

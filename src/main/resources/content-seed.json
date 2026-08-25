@@ -1,0 +1,27 @@
+{
+  "frogs": [
+    {"id":"forest","name":"护林蛙","shortName":"护","pattern":"山林纹","blessing":"长白山森林，象征生命与家园","assetUrl":"/assets/frogs/forest.png","sourceUrl":"/assets/sources/frogs/forest.docx","unlocked":true},
+    {"id":"ginseng","name":"采参蛙","shortName":"采","pattern":"云纹","blessing":"萨满通天信仰，象征吉祥与祝福","assetUrl":"/assets/frogs/ginseng.png","sourceUrl":"/assets/sources/frogs/ginseng.docx","unlocked":false},
+    {"id":"hibernation","name":"冬眠蛙","shortName":"冬","pattern":"水波纹","blessing":"溪流与湿地，象征林蛙栖息环境","assetUrl":"/assets/frogs/hibernation.png","sourceUrl":"/assets/sources/frogs/hibernation.docx","unlocked":false},
+    {"id":"lotus","name":"荷叶蛙","shortName":"荷","pattern":"蛙纹","blessing":"满族萨满图腾，象征繁衍与山林灵物","assetUrl":"/assets/frogs/lotus.png","sourceUrl":"/assets/sources/frogs/lotus.docx","unlocked":false},
+    {"id":"insect","name":"捕虫蛙","shortName":"捕","pattern":"虫鸟纹","blessing":"森林食物链，象征自然和谐","assetUrl":"/assets/frogs/insect.png","sourceUrl":"/assets/sources/frogs/insect.docx","unlocked":false},
+    {"id":"immune","name":"免疫蛙","shortName":"免","pattern":"太阳纹","blessing":"萨满向日崇拜，象征光明与生命力","assetUrl":"/assets/frogs/immune.png","sourceUrl":"/assets/sources/frogs/immune.docx","unlocked":false},
+    {"id":"youth","name":"驻颜蛙","shortName":"驻","pattern":"花叶纹","blessing":"山林繁花，象征美好与绽放","assetUrl":"/assets/frogs/youth.png","sourceUrl":"/assets/sources/frogs/youth.docx","unlocked":false},
+    {"id":"snow","name":"天池映雪蛙","shortName":"雪","pattern":"冰雪纹","blessing":"长白山冰雪，象征纯洁与勇气","assetUrl":"/assets/frogs/snow.png","sourceUrl":"/assets/sources/frogs/snow.docx","unlocked":false},
+    {"id":"lung","name":"润肺蛙","shortName":"润","pattern":"空气纹","blessing":"长白山云雾，象征清新与呼吸","assetUrl":"/assets/frogs/lung.png","sourceUrl":"/assets/sources/frogs/lung.docx","unlocked":false}
+  ],
+  "games": [
+    {"id":"paper-cutting","title":"指尖剪林蛙","subtitle":"拼一张剪纸，认识一组纹样","path":"/pages/games/paper-cutting/paper-cutting"},
+    {"id":"story","title":"林蛙谷寻踪","subtitle":"听一段说部，走完一段旅程","path":"/pages/games/story/story"},
+    {"id":"guardian","title":"摇一摇·守护神","subtitle":"解锁你的林蛙守护神","path":"/pages/games/guardian/guardian"}
+  ],
+  "patterns": ["蛙纹","山林纹","水波纹","云纹","花叶纹"],
+  "badges": [
+    {"id":"paper-beginner","name":"剪纸新手","level":"bronze"},
+    {"id":"story-listener","name":"故事聆听者","level":"bronze"},
+    {"id":"guardian-first","name":"守护神初遇","level":"bronze"}
+  ],
+  "home": {"brand":"纸韵蛙鸣·哈什蚂传奇","slogan":"拼一张剪纸，听一段说部","fundAmount":"12,480.00","fundUpdatedAt":"2026-08-17 12:00"},
+  "activities": ["吉林·张同学刚刚集齐了第6枚徽章","辽宁·李同学解锁了蛙纹","黑龙江·王同学完成了林蛙谷第1章"],
+  "welfare": {"fundAmount":"12,480.00","updatedAt":"2026-08-17"}
+}
