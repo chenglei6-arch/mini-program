@@ -13,9 +13,9 @@ Component({
 
   lifetimes: {
     attached() {
-      auth.ensureLogin().then(() => this.loadStory()).catch((error) => {
+      auth.withLogin(() => this.loadStory()).catch((error) => {
         this.setData({ loading: false })
-        wx.showToast({ title: error.message || '登录失败，请稍后重试', icon: 'none' })
+        wx.showToast({ title: error && error.code === 401 ? '登录失败，请稍后重试' : '故事进度加载失败', icon: 'none' })
       })
     },
   },
@@ -23,9 +23,8 @@ Component({
   methods: {
     loadStory() {
       this.setData({ loading: true })
-      gameService.getGameProgress('story')
+      return gameService.getGameProgress('story')
         .then((progress) => this.setStory(progress))
-        .catch(() => wx.showToast({ title: '故事进度加载失败', icon: 'none' }))
         .finally(() => this.setData({ loading: false }))
     },
 

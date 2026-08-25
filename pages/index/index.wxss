@@ -20,6 +20,7 @@
 
 .fund__label { color: #7b877f; font-size: 24rpx; }
 .fund__amount { margin-top: 4rpx; color: #bc7b2a; font-size: 38rpx; font-weight: 700; }
+.fund__development { color: #7b877f; font-size: 28rpx; }
 .fund__action, .game-card__link { color: #1f5c46; font-size: 24rpx; }
 
 /* Flex is supported consistently by Skyline and WebView renderers. */
@@ -33,7 +34,9 @@
 .frog-item { color: #a7aea7; font-size: 20rpx; text-align: center; }
 .frog-item { width: 20%; margin-bottom: 20rpx; }
 .frog-item--active { color: #1f5c46; }
-.frog-item__avatar { width: 74rpx; height: 74rpx; margin: 0 auto 8rpx; border: 1rpx solid currentColor; border-radius: 50%; font-size: 26rpx; line-height: 74rpx; }
+.frog-item__avatar-wrap { position: relative; width: 74rpx; height: 74rpx; margin: 0 auto 8rpx; }
+.frog-item__avatar { display: block; width: 74rpx; height: 74rpx; border: 1rpx solid currentColor; border-radius: 50%; font-size: 26rpx; line-height: 74rpx; }
+.frog-item__lock { position: absolute; right: -4rpx; bottom: -4rpx; width: 30rpx; height: 30rpx; border-radius: 50%; background: #7b877f; color: #fff; font-size: 18rpx; line-height: 30rpx; }
 .frog-item__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .frog-item__pattern { margin-top: 2rpx; font-size: 18rpx; }
 
@@ -41,3 +44,13 @@
 .activity__item { padding: 14rpx 0; border-top: 1rpx solid #eee9df; color: #5e6a62; font-size: 24rpx; }
 .home-actions { display: flex; justify-content: space-between; padding-bottom: 24rpx; }
 .home-actions button { width: 48%; margin: 0; }
+
+.frog-detail-mask { position: fixed; z-index: 20; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: center; padding: 32rpx; box-sizing: border-box; background: rgba(25, 35, 29, .62); }
+.frog-detail { position: relative; width: 100%; height: 88vh; padding: 28rpx; box-sizing: border-box; }
+.frog-detail__close { position: absolute; z-index: 1; top: 12rpx; right: 22rpx; width: 56rpx; height: 56rpx; color: #7b877f; font-size: 48rpx; line-height: 48rpx; text-align: center; }
+.frog-detail__image { display: block; width: 100%; height: 48vh; min-height: 360rpx; margin: 12rpx auto 8rpx; }
+.frog-detail__title { color: #24342d; font-size: 38rpx; font-weight: 700; text-align: center; }
+.frog-detail__meta { margin: 8rpx 24rpx 24rpx; color: #7b877f; font-size: 24rpx; line-height: 1.6; text-align: center; }
+.frog-detail__section { padding-top: 20rpx; border-top: 1rpx solid #eee9df; }
+.frog-detail__heading { color: #1f5c46; font-size: 29rpx; font-weight: 700; }
+.frog-detail__paragraph { margin-top: 12rpx; color: #5e6a62; font-size: 25rpx; line-height: 1.75; }

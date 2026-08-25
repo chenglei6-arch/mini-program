@@ -1,3 +1,4 @@
+const auth = require('../../utils/auth')
 const userService = require('../../services/user')
 
 Component({
@@ -9,7 +10,7 @@ Component({
     },
     load() {
       this.setData({ loading: true })
-      userService.getRankings(this.data.type)
+      auth.withLogin(() => userService.getRankings(this.data.type))
         .then((data) => this.setData({ data }))
         .catch(() => wx.showToast({ title: '榜单加载失败', icon: 'none' }))
         .finally(() => this.setData({ loading: false }))

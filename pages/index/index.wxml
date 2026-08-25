@@ -13,7 +13,8 @@
     <view class="fund surface" bindtap="openWelfare">
       <view>
         <view class="fund__label">公益基金池</view>
-        <view class="fund__amount">¥ {{summary.fundAmount}}</view>
+        <view wx:if="{{summary.fundAmount}}" class="fund__amount">¥ {{summary.fundAmount}}</view>
+        <view wx:else class="fund__amount fund__development">公益基金数据开发中</view>
       </view>
       <view class="fund__action">查看公示 ></view>
     </view>
@@ -30,6 +31,7 @@
           <view class="game-card__subtitle">{{item.subtitle}}</view>
           <view class="game-card__link">开始体验 ></view>
         </view>
+        <view wx:if="{{summary.games.length === 0}}" class="surface empty-state">游戏内容开发中</view>
       </view>
     </view>
 
@@ -39,11 +41,16 @@
         <text class="section-title__sub">{{summary.frogs.length}} 个角色</text>
       </view>
       <view class="frog-grid surface">
-        <view wx:for="{{summary.frogs}}" wx:key="id" class="frog-item {{item.unlocked ? 'frog-item--active' : ''}}">
-          <view class="frog-item__avatar">{{item.unlocked ? item.shortName : '锁'}}</view>
+        <view wx:for="{{summary.frogs}}" wx:key="id" class="frog-item {{item.unlocked ? 'frog-item--active' : ''}}" data-id="{{item.id}}" bindtap="openFrogDetail">
+          <view class="frog-item__avatar-wrap">
+            <image wx:if="{{item.assetUrl}}" class="frog-item__avatar" src="{{item.assetUrl}}" mode="aspectFill"></image>
+            <view wx:else class="frog-item__avatar">{{item.shortName}}</view>
+            <view wx:if="{{!item.unlocked}}" class="frog-item__lock">锁</view>
+          </view>
           <view class="frog-item__name">{{item.name}}</view>
           <view class="frog-item__pattern">{{item.pattern}}</view>
         </view>
+        <view wx:if="{{summary.frogs.length === 0}}" class="empty-state">角色内容开发中</view>
       </view>
     </view>
 
@@ -53,6 +60,7 @@
         <text class="section-title__sub" bindtap="openRankings">查看榜单 ></text>
       </view>
       <view wx:for="{{summary.activity}}" wx:key="*this" class="activity__item">{{item}}</view>
+      <view wx:if="{{summary.activity.length === 0}}" class="empty-state">蛙友动态开发中</view>
     </view>
 
     <view class="section home-actions">
@@ -61,3 +69,19 @@
     </view>
   </block>
 </scroll-view>
+
+<view wx:if="{{detailVisible}}" class="frog-detail-mask" catchtap="closeFrogDetail">
+  <scroll-view class="frog-detail surface" scroll-y="true" catchtap="stopDetailTap">
+    <view class="frog-detail__close" aria-label="关闭" bindtap="closeFrogDetail">×</view>
+    <view wx:if="{{detailLoading}}" class="empty-state">正在加载说明...</view>
+    <block wx:if="{{!detailLoading && frogDetail}}">
+      <image class="frog-detail__image" src="{{frogDetail.assetUrl}}" mode="aspectFit"></image>
+      <view class="frog-detail__title">{{frogDetail.name}}</view>
+      <view class="frog-detail__meta">{{frogDetail.pattern}} · {{frogDetail.blessing}}</view>
+      <view wx:for="{{frogDetail.sections}}" wx:key="heading" class="frog-detail__section">
+        <view class="frog-detail__heading">{{item.heading}}</view>
+        <view wx:for="{{item.paragraphs}}" wx:key="*this" class="frog-detail__paragraph">{{item}}</view>
+      </view>
+    </block>
+  </scroll-view>
+</view>

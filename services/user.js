@@ -1,18 +1,26 @@
-const env = require('../config/env')
 const request = require('../utils/request')
-const mock = require('./mock-data')
 
 function getProfile() {
-  return env.useMock ? Promise.resolve(mock.profile()) : request.request({ url: '/v1/me/profile' })
+  return request.request({ url: '/v1/me/profile' }).then((profile) => ({
+    ...profile,
+    status: 'DEVELOPMENT',
+    stats: { status: 'DEVELOPMENT' },
+    badges: [],
+    orders: [],
+  }))
 }
 
 function getRankings(type = 'total') {
-  const data = { type, updatedAt: '2026-08-17 12:00', items: [], myRank: null }
-  return env.useMock ? Promise.resolve(data) : request.request({ url: '/v1/rankings', data: { type } })
+  return request.request({ url: '/v1/rankings', data: { type } }).then((data) => ({
+    ...data,
+    status: 'DEVELOPMENT',
+    items: [],
+    updatedAt: null,
+    myRank: null,
+  }))
 }
 
 function updateProfile(profile) {
-  if (env.useMock) return Promise.resolve(profile)
   return request.request({ url: '/v1/me/profile', method: 'PATCH', data: profile })
 }
 

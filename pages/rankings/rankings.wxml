@@ -5,7 +5,8 @@
     <view class="rank-tab {{type === 'weekly' ? 'rank-tab--active' : ''}}" data-type="weekly" bindtap="switchType">周榜</view>
   </view>
   <view wx:if="{{loading}}" class="empty-state">正在加载榜单...</view>
-  <view wx:elif="{{data && data.items.length === 0}}" class="surface empty-state">榜单数据准备中</view>
+  <view wx:elif="{{data && data.status === 'DEVELOPMENT'}}" class="surface empty-state">榜单开发中</view>
+  <view wx:elif="{{data && data.items.length === 0}}" class="surface empty-state">暂无榜单数据</view>
   <view wx:else class="rank-list">
     <view wx:for="{{data.items}}" wx:key="userId" class="rank-item surface"><text>{{index + 1}}</text><text>{{item.nickname}}</text><text>{{item.score}}</text></view>
   </view>

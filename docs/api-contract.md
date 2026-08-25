@@ -17,6 +17,8 @@
 | --- | --- | --- | --- |
 | 微信登录 | POST | `/v1/auth/wechat-login` | code 换取业务 Token |
 | 首页聚合 | GET | `/v1/home/summary` | 基金、游戏、角色、动态 |
+| 林蛙素材清单 | GET | `/v1/content/frogs` | 九只林蛙的纹样、祝福语和资源地址 |
+| 林蛙详情 | GET | `/v1/content/frogs/{frogId}` | 大图及对应设计说明 DOCX 的章节内容 |
 | 游戏进度 | GET | `/v1/games/{gameId}/progress` | 断点续玩 |
 | 游戏事件 | POST | `/v1/games/{gameId}/events` | 服务端校验和去重；故事游戏使用 `story_choice` 事件 |
 | 扫码核销 | POST | `/v1/unlocks/redeem` | 唯一码一次性核销 |
@@ -27,6 +29,6 @@
 ## 尚未纳入页面的接口
 
 - 商品、库存、购物车、微信支付、退款、订单和物流。
-- 角色详情、纹样详情、音频/视频签名 URL。
+- 纹样详情、音频/视频签名 URL。
 - 徽章授予、成就规则、公益证书生成。
 - 举报、内容审核、运营后台和数据统计。

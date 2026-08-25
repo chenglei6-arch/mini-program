@@ -1,24 +1,6 @@
 <navigation-bar title="林蛙守护神" color="#24342D" background="#F7F4EC"></navigation-bar>
 <view class="page guardian-page">
   <view class="guardian-stage surface">
-    <view wx:if="{{!frog && !drawing}}" class="guardian-stage__empty">九只林蛙正在等待与你相遇</view>
-    <view wx:if="{{drawing}}" class="guardian-stage__loading">正在寻找你的守护神...</view>
-    <block wx:if="{{frog}}">
-      <view class="guardian-avatar">{{frog.name}}</view>
-      <view class="guardian-name">{{frog.name}}</view>
-      <view class="guardian-copy">从三个选项中选择它对应的传统纹样</view>
-    </block>
+    <view class="guardian-stage__empty">守护神玩法开发中</view>
   </view>
-
-  <view wx:if="{{frog && result !== 'correct'}}" class="guardian-options">
-    <button wx:for="{{options}}" wx:key="*this" class="ghost-button" data-pattern="{{item}}" bindtap="answer">{{item}}</button>
-  </view>
-
-  <view wx:if="{{result === 'correct'}}" class="guardian-card surface">
-    <view class="guardian-card__label">我的林蛙守护神</view>
-    <view class="guardian-card__name">{{frog.name}}</view>
-    <view class="guardian-card__pattern">{{frog.pattern}}</view>
-  </view>
-
-  <button class="primary-button draw-button" loading="{{drawing}}" bindtap="draw">{{frog ? '再摇一次' : '摇一摇'}}</button>
 </view>

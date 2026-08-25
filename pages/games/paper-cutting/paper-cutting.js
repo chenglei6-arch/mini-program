@@ -1,5 +1,6 @@
 // 小程序运行时不做目录 index.js 自动解析，使用显式模块文件路径。
 const { patterns } = require('../../../constants/index.js')
+const auth = require('../../../utils/auth')
 const gameService = require('../../../services/games')
 const { createPuzzleLayout } = require('../../../utils/puzzle-layout.js')
 
@@ -127,7 +128,7 @@ Component({
       if (this.data.submitting || this.data.completed) return
       this.setData({ submitting: true })
       // 当前用本地几何判定提供即时反馈，接入正式接口后应由服务端复核完成结果。
-      gameService.submitGameEvent('paper-cutting', { type: 'completed', patternCount: this.data.pieces.length })
+      auth.withLogin(() => gameService.submitGameEvent('paper-cutting', { type: 'completed', patternCount: this.data.pieces.length }))
         .then(() => {
           this.setData({ completed: true, submitting: false })
           wx.showToast({ title: '剪纸拼合完成', icon: 'success' })

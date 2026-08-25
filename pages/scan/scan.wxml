@@ -14,6 +14,6 @@
   <button class="primary-button" loading="{{loading}}" bindtap="startScan">扫描二维码</button>
   <view wx:if="{{result}}" class="scan-result surface">
     <view class="scan-result__title">{{result.message}}</view>
-    <view class="scan-result__copy">角色：{{result.characterName}}</view>
+    <view wx:if="{{result.characterName}}" class="scan-result__copy">角色：{{result.characterName}}</view>
   </view>
 </view>

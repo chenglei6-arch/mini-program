@@ -1,3 +1,4 @@
+const auth = require('../../utils/auth')
 const gameService = require('../../services/games')
 
 Component({
@@ -16,7 +17,7 @@ Component({
     redeem(code) {
       if (!code || this.data.loading) return
       this.setData({ loading: true, code })
-      gameService.unlockByCode(code)
+      auth.withLogin(() => gameService.unlockByCode(code))
         .then((result) => this.setData({ result }))
         .catch(() => wx.showToast({ title: '二维码核验失败', icon: 'none' }))
         .finally(() => this.setData({ loading: false }))

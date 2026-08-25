@@ -1,11 +1,12 @@
-const env = require('../config/env')
 const storage = require('./storage')
 const request = require('./request')
 
 const USER_KEY = 'user_profile'
 
 function getUser() {
-  return storage.get(USER_KEY, null)
+  const user = storage.get(USER_KEY, null)
+  if (user && user.nickname === '体验用户') return { ...user, nickname: '' }
+  return user
 }
 
 function saveSession(session) {
@@ -15,11 +16,6 @@ function saveSession(session) {
 }
 
 function login() {
-  if (env.useMock) {
-    const user = getUser() || { id: 'mock-user', nickname: '体验用户', avatarUrl: '', isGuest: true }
-    storage.set(USER_KEY, user)
-    return Promise.resolve(user)
-  }
   // 业务服务端必须用 code 换取自己的 Token，客户端不接触 session_key。
   return new Promise((resolve, reject) => {
     wx.login({
@@ -42,9 +38,18 @@ function ensureLogin() {
   return user && request.getToken() ? Promise.resolve(user) : login()
 }
 
+// Local development sessions are in-memory and become invalid when the backend restarts.
+// Retry the business request once with a fresh login instead of leaving the page at 401.
+function withLogin(action) {
+  return ensureLogin().then(() => action()).catch((error) => {
+    if (!error || error.code !== 401) throw error
+    return login().then(() => action())
+  })
+}
+
 function logout() {
   request.clearToken()
   storage.remove(USER_KEY)
 }
 
-module.exports = { getUser, login, ensureLogin, logout }
+module.exports = { getUser, login, ensureLogin, withLogin, logout }

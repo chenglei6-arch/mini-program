@@ -37,5 +37,6 @@
     "tabIndent": "auto",
     "tabSize": 2
   },
-  "simulatorPluginLibVersion": {}
+  "simulatorPluginLibVersion": {},
+  "isGameTourist": false
 }

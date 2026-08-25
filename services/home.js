@@ -1,13 +1,27 @@
-const env = require('../config/env')
 const request = require('../utils/request')
-const mock = require('./mock-data')
+const { resolveAssetUrl } = require('../utils/assets')
 
 function getHomeSummary() {
-  return env.useMock ? Promise.resolve(mock.home()) : request.request({ url: '/v1/home/summary' })
+  return request.request({ url: '/v1/home/summary' }).then((summary) => ({
+    ...summary,
+    status: 'DEVELOPMENT',
+    fundAmount: null,
+    fundUpdateAt: null,
+    activity: [],
+    frogs: Array.isArray(summary.frogs)
+      ? summary.frogs.map((frog) => ({ ...frog, assetUrl: resolveAssetUrl(frog.assetUrl) }))
+      : [],
+  }))
 }
 
 function getWelfareSummary() {
-  return env.useMock ? Promise.resolve({ fundAmount: '12,480.00', reports: [], updatedAt: '2026-08-17' }) : request.request({ url: '/v1/welfare/summary' })
+  return request.request({ url: '/v1/welfare/summary' }).then((summary) => ({
+    ...summary,
+    status: 'DEVELOPMENT',
+    fundAmount: null,
+    updatedAt: null,
+    reports: [],
+  }))
 }
 
 module.exports = { getHomeSummary, getWelfareSummary }
