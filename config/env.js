@@ -1,7 +1,7 @@
 const environments = {
   development: {
     name: 'development',
-    baseUrl: 'http://192.168.1.3:8080',
+    baseUrl: 'https://www.luolikongchenglei.asia/',
     assetVersion: '3',
     timeout: 10000,
   },
