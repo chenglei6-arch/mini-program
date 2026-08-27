@@ -1,6 +1,173 @@
 <navigation-bar title="林蛙守护神" color="#24342D" background="#F7F4EC"></navigation-bar>
 <view class="page guardian-page">
-  <view class="guardian-stage surface">
-    <view class="guardian-stage__empty">守护神玩法开发中</view>
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="guardian-stage surface">
+    <view class="guardian-stage__loading">加载中...</view>
+  </view>
+
+  <!-- 错误状态 -->
+  <view wx:elif="{{error}}" class="guardian-stage surface">
+    <view class="guardian-stage__empty">{{error}}</view>
+    <button class="retry-button" type="primary" size="mini" bindtap="onRetry">重试</button>
+  </view>
+
+  <!-- 游戏主界面 -->
+  <view wx:else class="guardian-stage surface">
+    <!-- 已完成全部收集 -->
+    <view wx:if="{{finished}}" class="guardian-finished">
+      <view class="guardian-finished__icon">🏆</view>
+      <view class="guardian-finished__title">恭喜完成</view>
+      <view class="guardian-finished__desc">九只林蛙守护神已全部收集</view>
+    </view>
+
+    <!-- 当前有挑战题目 -->
+    <view wx:elif="{{activeChallenge}}" class="guardian-challenge">
+      <view class="guardian-avatar">
+        <image wx:if="{{activeChallenge.assetUrl}}" src="{{activeChallenge.assetUrl}}" mode="aspectFit" class="guardian-avatar__image"></image>
+        <text wx:else>{{activeChallenge.shortName}}</text>
+      </view>
+      <view class="guardian-name">{{activeChallenge.name}}</view>
+      <view class="guardian-copy">请选择对应的纹样</view>
+
+      <view class="guardian-options">
+        <button
+          wx:for="{{activeChallenge.options}}"
+          wx:key="index"
+          class="option-button {{selectedPattern === item ? 'selected' : ''}}"
+          bindtap="onSelectPattern"
+          data-pattern="{{item}}"
+          disabled="{{submitting}}"
+        >
+          {{item}}
+        </button>
+      </view>
+
+      <button
+        class="draw-button"
+        type="primary"
+        bindtap="onSubmitAnswer"
+        disabled="{{!selectedPattern || submitting}}"
+        loading="{{submitting}}"
+      >
+        {{submitting ? '提交中...' : '确认'}}
+      </button>
+    </view>
+
+    <!-- 待抽取状态 -->
+    <view wx:else class="guardian-idle">
+      <view class="guardian-idle__icon">🐸</view>
+      <view class="guardian-idle__title">摇一摇召唤守护神</view>
+      <view class="guardian-idle__info">
+        <text>今日剩余：{{remainingDraws}} 次</text>
+        <text wx:if="{{!shareBonusClaimed}}" class="share-tip">（分享可获得额外 1 次）</text>
+      </view>
+
+      <button
+        class="draw-button {{shaking ? 'shaking' : ''}}"
+        type="primary"
+        bindtap="onShake"
+        disabled="{{remainingDraws <= 0 || shaking}}"
+        loading="{{shaking}}"
+      >
+        {{shaking ? '摇一摇中...' : '开始摇一摇'}}
+      </button>
+
+      <button
+        wx:if="{{canClaimShareBonus && !shareBonusClaimed}}"
+        class="share-button"
+        open-type="share"
+      >
+        分享获得额外次数
+      </button>
+    </view>
+  </view>
+
+  <!-- 收集进度 -->
+  <view class="collection-section">
+    <view class="section-header">
+      <text class="section-title">收集图鉴</text>
+      <text class="section-count">{{completed}}/{{total}}</text>
+    </view>
+
+    <view class="collection-grid">
+      <view
+        wx:for="{{collection}}"
+        wx:key="id"
+        class="collection-card"
+      >
+        <view class="collection-card__avatar-wrap">
+          <image wx:if="{{item.assetUrl}}" src="{{item.assetUrl}}" mode="aspectFill" class="collection-card__avatar"></image>
+          <view wx:else class="collection-card__avatar">{{item.shortName}}</view>
+        </view>
+        <view class="collection-card__name">{{item.shortName}}</view>
+        <view class="collection-card__pattern">{{item.pattern}}</view>
+      </view>
+
+      <view
+        wx:for="{{total - completed}}"
+        wx:key="index"
+        class="collection-card locked"
+      >
+        <view class="collection-card__lock">🔒</view>
+        <view class="collection-card__name">未解锁</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 徽章进度 -->
+  <view class="badges-section">
+    <view class="section-header">
+      <text class="section-title">守护神徽章</text>
+    </view>
+
+    <view class="badges-list">
+      <view
+        wx:for="{{badges}}"
+        wx:key="id"
+        class="badge-item {{item.unlocked ? 'unlocked' : 'locked'}}"
+      >
+        <view class="badge-icon badge-icon--{{item.level}}">
+          {{item.unlocked ? '🏅' : '🔒'}}
+        </view>
+        <view class="badge-name">{{item.name}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 结果弹窗 -->
+  <view wx:if="{{showResult}}" class="result-modal" bindtap="onCloseResult">
+    <view class="result-modal__content" catchtap="">
+      <view class="result-icon">
+        <text wx:if="{{resultType === 'success'}}">🎉</text>
+        <text wx:elif="{{resultType === 'error'}}">❌</text>
+      </view>
+
+      <view class="result-message">{{resultMessage}}</view>
+
+      <view wx:if="{{guardianCard}}" class="guardian-card">
+        <view class="guardian-card__avatar-wrap">
+          <image wx:if="{{guardianCard.assetUrl}}" src="{{guardianCard.assetUrl}}" mode="aspectFill" class="guardian-card__avatar"></image>
+          <view wx:else class="guardian-card__avatar">{{guardianCard.shortName}}</view>
+        </view>
+        <view class="guardian-card__label">获得守护神</view>
+        <view class="guardian-card__name">{{guardianCard.name}}</view>
+        <view class="guardian-card__pattern">{{guardianCard.pattern}}</view>
+        <view class="guardian-card__blessing">{{guardianCard.blessing}}</view>
+      </view>
+
+      <view wx:if="{{newlyUnlockedBadges.length > 0}}" class="unlocked-badges">
+        <view class="unlocked-badges__title">解锁新徽章</view>
+        <view
+          wx:for="{{newlyUnlockedBadges}}"
+          wx:key="id"
+          class="unlocked-badge"
+        >
+          <view class="unlocked-badge__icon">🏅</view>
+          <view class="unlocked-badge__name">{{item.name}}</view>
+        </view>
+      </view>
+
+      <button class="close-button" bindtap="onCloseResult">关闭</button>
+    </view>
   </view>
 </view>

@@ -19,9 +19,16 @@ Component({
   methods: {
     loadSummary() {
       this.setData({ loading: true, refreshing: true })
+      console.log('开始加载首页数据...')
       auth.withLogin(() => homeService.getHomeSummary())
-        .then((summary) => this.setData({ summary }))
-        .catch((error) => wx.showToast({ title: error.message || '首页内容加载失败', icon: 'none' }))
+        .then((summary) => {
+          console.log('首页数据加载成功:', summary)
+          this.setData({ summary })
+        })
+        .catch((error) => {
+          console.error('首页数据加载失败:', error)
+          wx.showToast({ title: error.message || '首页内容加载失败', icon: 'none', duration: 3000 })
+        })
         .finally(() => this.setData({ loading: false, refreshing: false }))
     },
     openGame(event) {

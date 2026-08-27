@@ -21,4 +21,10 @@ const environments = {
 
 const current = 'development'
 
-module.exports = environments[current]
+const config = environments[current]
+console.log('=== 环境配置加载 ===')
+console.log('当前环境:', current)
+console.log('baseUrl:', config.baseUrl)
+console.log('完整配置:', config)
+
+module.exports = config

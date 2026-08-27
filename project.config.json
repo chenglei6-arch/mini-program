@@ -1,5 +1,5 @@
 {
-  "appid": "wxc788fb8493554a81",
+  "appid": "wx3538e062fe3f1d0b",
   "compileType": "miniprogram",
   "libVersion": "3.17.1",
   "packOptions": {
@@ -8,10 +8,10 @@
   },
   "setting": {
     "coverView": true,
-    "es6": true,
+    "es6": false,
     "postcss": true,
     "minified": true,
-    "enhance": true,
+    "enhance": false,
     "showShadowRootInWxmlPanel": true,
     "packNpmRelationList": [],
     "babelSetting": {
@@ -26,7 +26,7 @@
     "minifyWXSS": true,
     "minifyWXML": true,
     "localPlugins": false,
-    "condition": false,
+    "condition": true,
     "swc": false,
     "disableSWC": true,
     "disableUseStrict": false,
