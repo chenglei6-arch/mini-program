@@ -1,4 +1,4 @@
-<navigation-bar title="扫码解锁" color="#24342D" background="#F7F4EC"></navigation-bar>
+<app-navigation-bar title="扫码解锁" color="#24342D" background="#F7F4EC"></app-navigation-bar>
 <view class="page scan-page">
   <view class="scan-intro surface">
     <view class="scan-intro__title">解锁角色故事</view>

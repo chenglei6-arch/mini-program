@@ -1,4 +1,4 @@
-<navigation-bar title="我的" back="{{false}}" color="#24342D" background="#F7F4EC"></navigation-bar>
+<app-navigation-bar title="我的" back="{{false}}" color="#24342D" background="#F7F4EC"></app-navigation-bar>
 <scroll-view class="page" scroll-y>
   <view wx:if="{{loading}}" class="empty-state">正在加载个人信息...</view>
   <block wx:if="{{!loading && profile}}">

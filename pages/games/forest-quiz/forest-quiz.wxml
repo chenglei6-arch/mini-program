@@ -1,0 +1,58 @@
+<app-navigation-bar title="林蛙知识闯关" color="#24342D" background="#F7F4EC"></app-navigation-bar>
+<scroll-view class="page" scroll-y>
+  <view wx:if="{{loading}}" class="empty-state">正在加载题库...</view>
+  <view wx:elif="{{error}}" class="quiz-error surface">
+    <view>{{error}}</view>
+    <button class="ghost-button" bindtap="loadProgress">重试</button>
+  </view>
+  <block wx:elif="{{progress}}">
+    <view class="quiz-summary surface">
+      <view class="quiz-summary__title">主题关卡</view>
+      <view class="quiz-summary__copy">答对每关3题，逐步认识东北林蛙</view>
+      <view class="level-list">
+        <block wx:for="{{progress.state.levels}}" wx:key="id">
+          <view wx:if="{{item.unlocked}}" class="level-item {{item.completed ? 'level-item--done' : ''}}">
+          <view class="level-item__number">{{item.order}}</view>
+          <view class="level-item__body"><view class="level-item__title">{{item.title}}</view><view class="level-item__topic">{{item.topic}}</view></view>
+          <button class="level-item__action" data-level-id="{{item.id}}" catchtap="openLevel">{{item.completed ? '回顾' : '继续'}}</button>
+          </view>
+        </block>
+      </view>
+    </view>
+
+      <view wx:if="{{progress.finished}}" class="finished surface">
+      <view class="finished__icon">🏆</view>
+      <view class="finished__title">恭喜完成全部关卡</view>
+      <view class="finished__copy">主题徽章已全部解锁</view>
+    </view>
+
+    <block>
+      <view class="review-card surface" wx:if="{{reviewLevel}}">
+        <view class="quiz-card__eyebrow">已完成 · {{reviewLevel.topic}}</view>
+        <view class="quiz-card__title">{{reviewLevel.title}}</view>
+        <view class="knowledge"><view class="knowledge__title">本关知识点</view><view wx:for="{{reviewLevel.knowledgePoints}}" wx:key="*this" class="knowledge__item">{{item}}</view></view>
+        <view class="review-questions"><view class="knowledge__title">题目回顾</view><view wx:for="{{reviewLevel.questions}}" wx:key="id" class="review-question"><view class="review-question__prompt">{{index + 1}}. {{item.prompt}}</view><view wx:for="{{item.options}}" wx:key="id" class="review-question__option {{item.correct ? 'review-question__option--correct' : ''}}"><text>{{item.id}}. {{item.text}}</text><text wx:if="{{item.correct}}" class="review-question__correct">正确答案</text></view></view></view>
+        <button class="ghost-button" bindtap="closeReview">返回当前关卡</button>
+      </view>
+      <view class="quiz-card surface" wx:elif="{{progress.state.currentLevel}}">
+        <view class="quiz-card__eyebrow">第 {{progress.state.currentLevel.order}} 关 · {{progress.state.currentLevel.topic}}</view>
+        <view class="quiz-card__title">{{progress.state.currentLevel.title}}</view>
+        <view class="knowledge"><view class="knowledge__title">本关知识点</view><view wx:for="{{progress.state.currentLevel.knowledgePoints}}" wx:key="*this" class="knowledge__item">{{item}}</view></view>
+        <view class="question-progress">第 {{progress.state.currentQuestionIndex + 1}} / {{progress.state.totalQuestions}} 题</view>
+        <view class="question">{{progress.state.currentLevel.questions[progress.state.currentQuestionIndex].prompt}}</view>
+        <view class="options">
+          <view wx:for="{{progress.state.currentLevel.questions[progress.state.currentQuestionIndex].options}}" wx:key="id" class="option {{selectedOptionId === item.id ? 'option--selected' : ''}}" data-option-id="{{item.id}}" bindtap="selectOption"><view class="option__marker">{{item.id}}</view><view>{{item.text}}</view></view>
+        </view>
+        <button class="primary-button" loading="{{submitting}}" disabled="{{!selectedOptionId || submitting}}" bindtap="submitAnswer">{{submitting ? '提交中...' : '确认答案'}}</button>
+      </view>
+    </block>
+
+    <view wx:if="{{feedback}}" class="feedback {{feedback.correct ? 'feedback--correct' : 'feedback--wrong'}}" bindtap="continueAfterWrong">
+      <view class="feedback__title">{{feedback.message}}</view>
+      <view class="feedback__explanation">{{feedback.explanation}}</view>
+      <view wx:if="{{!feedback.correct}}" class="feedback__hint">点击此处继续作答</view>
+    </view>
+
+    <view class="badges surface"><view class="badges__title">主题徽章</view><view class="badges__list"><block wx:for="{{progress.state.badges}}" wx:key="id"><view wx:if="{{item.unlocked}}" class="badge badge--unlocked"><view class="badge__icon">🏅</view><view>{{item.name}}</view></view></block></view></view>
+  </block>
+</scroll-view>

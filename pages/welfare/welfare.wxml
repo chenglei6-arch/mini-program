@@ -1,4 +1,4 @@
-<navigation-bar title="公益与徽章" color="#24342D" background="#F7F4EC"></navigation-bar>
+<app-navigation-bar title="公益与徽章" color="#24342D" background="#F7F4EC"></app-navigation-bar>
 <scroll-view class="page" scroll-y>
   <view wx:if="{{loading}}" class="empty-state">正在加载公示...</view>
   <block wx:if="{{!loading && summary}}">

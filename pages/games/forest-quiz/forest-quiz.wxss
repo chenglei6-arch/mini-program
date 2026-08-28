@@ -1,0 +1,25 @@
+.page { min-height: 100vh; background: #f7f4ec; padding: 24rpx 24rpx 48rpx; box-sizing: border-box; }
+.surface { background: #fffdf8; border-radius: 12rpx; }
+.quiz-summary { padding: 28rpx; }
+.quiz-summary__title, .quiz-card__title { color: #24342d; font-size: 38rpx; font-weight: 700; }
+.quiz-summary__copy { margin-top: 8rpx; color: #7b877f; font-size: 24rpx; }
+.level-list { margin-top: 24rpx; }
+.level-item { display: flex; align-items: center; padding: 16rpx 0; border-top: 1rpx solid #eee9df; color: #7b877f; }
+.level-item__number { width: 48rpx; height: 48rpx; border-radius: 50%; background: #e7efe6; color: #1f5c46; text-align: center; line-height: 48rpx; font-weight: 700; }
+.level-item--done .level-item__number { background: #bc7b2a; color: #fff; }
+.level-item--locked { opacity: .45; }
+.level-item__body { flex: 1; margin-left: 16rpx; }.level-item__title { color: #24342d; font-size: 27rpx; }.level-item__topic { margin-top: 4rpx; font-size: 22rpx; }
+.level-item__action { flex: none; margin: 0 0 0 12rpx; padding: 0 18rpx; min-width: 88rpx; height: 52rpx; line-height: 50rpx; border: 1rpx solid #d8ded5; border-radius: 26rpx; background: transparent; color: #1f5c46; font-size: 23rpx; }
+.level-item__action::after { border: 0; }
+.level-item--done .level-item__action { border-color: #d8b27b; color: #bc7b2a; }
+.quiz-card { margin-top: 20rpx; padding: 28rpx; }.quiz-card__eyebrow { color: #bc7b2a; font-size: 24rpx; }.knowledge { margin-top: 20rpx; padding: 20rpx; background: #f0f5ee; }.knowledge__title { color: #1f5c46; font-weight: 700; }.knowledge__item { margin-top: 10rpx; color: #5e6a62; font-size: 24rpx; line-height: 1.55; }
+.review-card { margin-top: 20rpx; padding: 28rpx; }
+.review-questions { margin-top: 24rpx; }
+.review-question { margin-top: 18rpx; padding-top: 18rpx; border-top: 1rpx solid #eee9df; }
+.review-question__prompt { color: #24342d; font-size: 28rpx; font-weight: 700; line-height: 1.5; }
+.review-question__option { margin-top: 10rpx; padding: 14rpx 16rpx; border-radius: 8rpx; background: #f7f4ec; color: #5e6a62; font-size: 24rpx; line-height: 1.45; }
+.review-question__option--correct { background: #e7efe6; color: #1f5c46; font-weight: 700; }
+.review-question__correct { float: right; color: #bc7b2a; font-size: 21rpx; font-weight: 700; }
+.question-progress { margin-top: 26rpx; color: #7b877f; font-size: 23rpx; }.question { margin-top: 10rpx; color: #24342d; font-size: 32rpx; font-weight: 700; line-height: 1.5; }.options { margin-top: 22rpx; }.option { display: flex; align-items: center; margin-top: 14rpx; padding: 20rpx; border: 2rpx solid #e4e8df; border-radius: 10rpx; color: #405047; font-size: 27rpx; }.option--selected { border-color: #1f5c46; background: #edf5ed; color: #1f5c46; }.option__marker { width: 36rpx; height: 36rpx; margin-right: 14rpx; border-radius: 50%; background: #e7efe6; color: #1f5c46; text-align: center; line-height: 36rpx; font-size: 22rpx; text-transform: uppercase; }
+.primary-button { margin-top: 26rpx; background: #1f5c46; color: #fff; }.feedback { margin-top: 16rpx; padding: 22rpx 26rpx; border-radius: 10rpx; }.feedback--correct { background: #e7efe6; color: #1f5c46; }.feedback--wrong { background: #fff0e5; color: #8b572a; }.feedback__title { font-size: 29rpx; font-weight: 700; }.feedback__explanation { margin-top: 8rpx; font-size: 24rpx; line-height: 1.5; }.feedback__hint { margin-top: 10rpx; font-size: 22rpx; opacity: .8; }
+.badges { margin-top: 20rpx; padding: 24rpx; }.badges__title { color: #24342d; font-weight: 700; }.badges__list { display: flex; flex-wrap: wrap; margin-top: 12rpx; }.badge { display: flex; align-items: center; width: 50%; margin-top: 14rpx; color: #a7aea7; font-size: 23rpx; }.badge--unlocked { color: #1f5c46; }.badge__icon { width: 38rpx; margin-right: 8rpx; font-size: 26rpx; }.finished { margin-top: 20rpx; padding: 56rpx 24rpx; text-align: center; }.finished__icon { font-size: 88rpx; }.finished__title { margin-top: 16rpx; color: #24342d; font-size: 36rpx; font-weight: 700; }.finished__copy { margin-top: 8rpx; color: #7b877f; }.quiz-error { margin-top: 28rpx; padding: 32rpx; color: #7b877f; text-align: center; }.quiz-error button { margin-top: 20rpx; }

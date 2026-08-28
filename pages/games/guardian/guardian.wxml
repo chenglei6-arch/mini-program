@@ -1,4 +1,4 @@
-<navigation-bar title="林蛙守护神" color="#24342D" background="#F7F4EC"></navigation-bar>
+<app-navigation-bar title="林蛙守护神" color="#24342D" background="#F7F4EC"></app-navigation-bar>
 <view class="page guardian-page">
   <!-- 加载状态 -->
   <view wx:if="{{loading}}" class="guardian-stage surface">

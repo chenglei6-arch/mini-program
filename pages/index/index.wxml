@@ -1,4 +1,4 @@
-<navigation-bar title="纸韵蛙鸣" back="{{false}}" color="#24342D" background="#F7F4EC"></navigation-bar>
+<app-navigation-bar title="纸韵蛙鸣" back="{{false}}" color="#24342D" background="#F7F4EC"></app-navigation-bar>
 
 <scroll-view class="page" scroll-y refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="loadSummary">
   <view wx:if="{{loading}}" class="empty-state">正在加载内容...</view>
@@ -21,7 +21,7 @@
 
     <view class="section">
       <view class="section-title">
-        <text class="section-title__main">三款游戏</text>
+        <text class="section-title__main">游戏</text>
         <text class="section-title__sub">免费体验</text>
       </view>
       <view class="games">
