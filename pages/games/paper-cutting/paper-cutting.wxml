@@ -1,33 +1,82 @@
-<navigation-bar title="指尖剪林蛙" color="#24342D" background="#F7F4EC"></navigation-bar>
+<navigation-bar title="青蛙拼图" color="#24342D" background="#F7F4EC"></navigation-bar>
 <scroll-view class="page" scroll-y>
-  <view class="game-summary">
-    <text>拼合进度</text>
-    <text>{{placedCount}} / {{pieces.length}}</text>
-  </view>
-
-  <view wx:if="{{ready}}" class="puzzle-stage surface {{completed ? 'puzzle-stage--completed' : ''}}">
-    <movable-area class="puzzle-area" style="width: {{stageWidth}}px; height: {{stageHeight}}px;">
-      <view class="board-backdrop" style="width: {{stageWidth}}px; height: {{boardHeight}}px;"></view>
-      <view wx:for="{{slots}}" wx:key="id" class="frog-slot {{item.filled ? 'frog-slot--filled' : ''}}" style="left: {{item.left}}px; top: {{item.top}}px; width: {{item.width}}px; height: {{item.height}}px;">
-        <text>{{item.filled ? item.filledName : item.number}}</text>
+  <!-- 青蛙选择器 -->
+  <view class="frog-selector">
+    <text class="selector-label">选择要拼的青蛙：</text>
+    <scroll-view class="frog-list" scroll-x>
+      <view wx:for="{{availableFrogs}}" wx:key="id"
+        class="frog-option {{selectedFrogId === item.id ? 'selected' : ''}}"
+        data-frog-id="{{item.id}}"
+        bindtap="onSelectFrog">
+        <image src="{{item.assetUrl}}" mode="aspectFit" />
+        <text>{{item.shortName}}</text>
       </view>
-
-      <view class="palette-title" style="top: {{paletteTitleTop}}px;">传统纹样</view>
-      <view class="palette-subtitle" style="top: {{paletteSubtitleTop}}px;">拖动纹样碎片到对应槽位</view>
-
-      <movable-view wx:for="{{pieces}}" wx:key="id" class="piece {{item.placed ? 'piece--used' : ''}}" style="width: {{item.width}}px; height: {{item.height}}px;" direction="all" inertia="{{false}}" x="{{item.x}}" y="{{item.y}}" data-index="{{index}}" disabled="{{item.placed}}" bindtouchstart="onPieceTouchStart" bindchange="onPieceChange" bindtouchend="onPieceTouchEnd">
-        <view class="piece__content">
-          <text class="piece__symbol">{{item.symbol}}</text>
-          <text class="piece__name">{{item.name}}</text>
-        </view>
-      </movable-view>
-    </movable-area>
+    </scroll-view>
   </view>
 
-  <view class="culture surface">
-    <view class="culture__title">纹样解读</view>
-    <view class="culture__body">纹样内容、出处与传承人审核信息将在素材定稿后由内容服务统一下发。</view>
+  <!-- 拼图进度 -->
+  <view class="puzzle-progress" wx:if="{{selectedFrogId}}">
+    <text class="progress-text">{{placedComponents.length}} / {{totalComponents}}</text>
   </view>
 
-  <button wx:if="{{completed}}" class="ghost-button reset" bindtap="resetGame">再拼一次</button>
+  <!-- 画布区域 -->
+  <view class="canvas-container" wx:if="{{selectedFrogId}}">
+    <view class="canvas-wrapper">
+      <!-- 已放置的组件（居中叠加） -->
+      <view wx:for="{{placedComponents}}" wx:key="id"
+        class="placed-component"
+        style="z-index: {{item.zIndex}};"
+        data-index="{{index}}"
+        bindtap="onComponentTap">
+        <image src="{{item.assetUrl}}" mode="aspectFit" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 组件库 -->
+  <view class="components-library" wx:if="{{selectedFrogId}}">
+    <view class="library-header">
+      <text class="library-title">组件库</text>
+      <text class="library-hint">点击添加组件</text>
+    </view>
+    <scroll-view class="component-list" scroll-x>
+      <view wx:for="{{frogComponents}}" wx:key="id"
+        class="component-item {{item.unlocked ? '' : 'locked'}} {{item.placed ? 'used' : ''}}"
+        data-component-id="{{item.id}}"
+        bindtap="onAddComponent">
+        <image src="{{item.assetUrl}}" mode="aspectFit" />
+        <text class="component-name">{{item.name}}</text>
+        <view class="used-badge" wx:if="{{item.placed}}">✓</view>
+        <view class="lock-badge" wx:if="{{!item.unlocked}}">🔒</view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 完成提示 -->
+  <view class="complete-overlay" wx:if="{{completed}}" bindtap="onCloseComplete">
+    <view class="complete-card" catchtap="stopPropagation">
+      <view class="complete-close" aria-label="关闭" bindtap="onCloseComplete">×</view>
+      <text class="complete-title">拼图完成！</text>
+      <image class="complete-frog" src="{{completedFrogImage}}" mode="aspectFit" />
+      <text class="complete-subtitle">{{selectedFrogName}}</text>
+      <button class="action-btn primary" bindtap="onViewCulture">查看文化解读</button>
+      <button class="action-btn" bindtap="onSelectAnother">拼其他青蛙</button>
+    </view>
+  </view>
 </scroll-view>
+
+<!-- 文化解读弹窗：复用角色墙的单一滚动详情布局，避免嵌套 flex 滚动导致文字溢出 -->
+<view wx:if="{{showCultureModal}}" class="culture-modal" bindtap="hideCultureModal">
+  <scroll-view class="culture-detail" scroll-y="true" catchtap="stopPropagation">
+    <view class="culture-detail__close" aria-label="关闭" bindtap="hideCultureModal">×</view>
+    <view wx:if="{{cultureData}}">
+      <image class="culture-detail__image" src="{{cultureData.assetUrl}}" mode="aspectFit" />
+      <view class="culture-detail__title">{{cultureData.name}}</view>
+      <view class="culture-detail__meta">{{cultureData.pattern}} · {{cultureData.blessing}}</view>
+      <view wx:for="{{cultureData.sections}}" wx:key="heading" class="culture-detail__section">
+        <view class="culture-detail__heading">{{item.heading}}</view>
+        <view wx:for="{{item.paragraphs}}" wx:key="*this" class="culture-detail__paragraph">{{item}}</view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

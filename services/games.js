@@ -17,4 +17,38 @@ function unlockByCode(code) {
   }))
 }
 
-module.exports = { getGameProgress, submitGameEvent, unlockByCode }
+// 青蛙拼图相关API
+function getFrogComponents(frogId) {
+  return request.request({ url: `/v1/games/frog-puzzle/frogs/${encodeURIComponent(frogId)}/components` })
+}
+
+function getUserComponents() {
+  return request.request({ url: '/v1/games/frog-puzzle/user/components' })
+}
+
+function submitFrogComplete(frogId, payload, idempotencyKey) {
+  const event = {
+    type: 'frog_completed',
+    payload: {
+      frogId,
+      ...payload
+    }
+  }
+  const options = { url: '/v1/games/frog-puzzle/events', method: 'POST', data: event }
+  if (idempotencyKey) options.header = { 'Idempotency-Key': idempotencyKey }
+  return request.request(options)
+}
+
+function getPuzzleProgress() {
+  return request.request({ url: '/v1/games/frog-puzzle/progress' })
+}
+
+module.exports = {
+  getGameProgress,
+  submitGameEvent,
+  unlockByCode,
+  getFrogComponents,
+  getUserComponents,
+  submitFrogComplete,
+  getPuzzleProgress
+}

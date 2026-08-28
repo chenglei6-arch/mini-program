@@ -48,7 +48,7 @@
         bindtap="onSubmitAnswer"
         disabled="{{!selectedPattern || submitting}}"
         loading="{{submitting}}"
-      >
+       style="position: relative; left: 1rpx; top: 0rpx">
         {{submitting ? '提交中...' : '确认'}}
       </button>
     </view>

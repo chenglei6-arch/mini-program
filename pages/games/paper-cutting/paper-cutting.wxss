@@ -1,19 +1,347 @@
-.game-summary { display: flex; justify-content: space-between; padding: 28rpx 0 16rpx; color: #5e6a62; }
-.puzzle-stage { position: relative; overflow: hidden; padding: 0; background: #fffdf8; }
-.puzzle-stage--completed { background: #f1f6ee; }
-.puzzle-area { position: relative; display: block; overflow: hidden; }
-.board-backdrop { position: absolute; left: 0; top: 0; border-radius: 10rpx; background: #efe8d9; }
-.frog-slot { position: absolute; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border: 2rpx dashed #a9a390; border-radius: 10rpx; color: #9b9584; font-size: 26rpx; }
-.frog-slot--filled { border-style: solid; border-color: #1f5c46; background: #1f5c46; color: #fff; }
-.palette-title { position: absolute; left: 0; color: #24342d; font-size: 34rpx; font-weight: 700; line-height: 1.3; }
-.palette-subtitle { position: absolute; left: 0; color: #7b877f; font-size: 24rpx; line-height: 1.4; }
-.piece { z-index: 3; box-sizing: border-box; padding: 0; border: 1rpx solid #1f5c46; border-radius: 10rpx; background: #fffdf8; color: #1f5c46; }
-.piece--used { border-color: #1f5c46; background: #1f5c46; color: #fff; }
-.piece__content { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 25rpx; }
-.piece__symbol { display: flex; align-items: center; justify-content: center; width: 42rpx; height: 42rpx; border-radius: 50%; background: #e3ecdf; color: #1f5c46; font-size: 23rpx; }
-.piece__name { margin-left: 10rpx; }
-.piece--used .piece__symbol { background: rgba(255, 255, 255, .2); color: #fff; }
-.culture { margin-top: 32rpx; padding: 28rpx; }
-.culture__title { font-size: 30rpx; font-weight: 700; }
-.culture__body { margin-top: 12rpx; color: #6f7a72; font-size: 25rpx; }
-.reset { margin-top: 24rpx; }
+/* 页面容器 */
+.page {
+  min-height: 100vh;
+  background: #F7F4EC;
+  padding-bottom: 40rpx;
+}
+
+/* 青蛙选择器 */
+.frog-selector {
+  padding: 32rpx;
+  background: #FFFFFF;
+  margin-bottom: 24rpx;
+}
+
+.selector-label {
+  display: block;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #24342D;
+  margin-bottom: 16rpx;
+}
+
+.frog-list {
+  white-space: nowrap;
+  padding: 16rpx 0;
+}
+
+.frog-option {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  width: 140rpx;
+  margin-right: 24rpx;
+  padding: 16rpx;
+  background: #F5F5F5;
+  border-radius: 20rpx;
+  border: 3rpx solid transparent;
+  transition: all 0.2s;
+}
+
+.frog-option.selected {
+  background: #E8F5E9;
+  border-color: #4CAF50;
+}
+
+.frog-option image {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 12rpx;
+}
+
+.frog-option text {
+  font-size: 24rpx;
+  color: #24342D;
+}
+
+/* 拼图进度 */
+.puzzle-progress {
+  text-align: center;
+  padding: 16rpx 32rpx;
+  background: #FFFFFF;
+  margin-bottom: 24rpx;
+}
+
+.progress-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #4CAF50;
+}
+
+/* 画布容器 */
+.canvas-container {
+  margin: 0 32rpx 24rpx;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+}
+
+.canvas-wrapper {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%; /* 1:1 正方形 */
+  background: #FAFAFA;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+/* 已放置的组件 */
+.placed-component {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.placed-component image {
+  width: 100%;
+  height: 100%;
+}
+
+/* 组件库 */
+.components-library {
+  margin: 0 32rpx;
+  padding: 24rpx;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+}
+
+.library-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.library-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #24342D;
+}
+
+.library-hint {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.component-list {
+  white-space: nowrap;
+  padding: 16rpx 0;
+}
+
+.component-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  width: 140rpx;
+  margin-right: 24rpx;
+  padding: 16rpx;
+  background: #F5F5F5;
+  border-radius: 20rpx;
+  position: relative;
+  transition: transform 0.2s;
+}
+
+.component-item:active {
+  transform: scale(0.95);
+}
+
+.component-item.used {
+  opacity: 0.5;
+}
+
+.component-item.locked {
+  opacity: 0.4;
+}
+
+.component-item image {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 12rpx;
+}
+
+.component-name {
+  font-size: 24rpx;
+  color: #24342D;
+  text-align: center;
+}
+
+.used-badge {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 40rpx;
+  height: 40rpx;
+  background: #4CAF50;
+  color: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+}
+
+.lock-badge {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  font-size: 32rpx;
+}
+
+/* 完成遮罩 */
+.complete-overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.complete-card {
+  position: relative;
+  width: 80%;
+  max-width: 600rpx;
+  background: #FFFFFF;
+  border-radius: 32rpx;
+  padding: 48rpx 32rpx;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.complete-close {
+  position: absolute;
+  top: 12rpx;
+  right: 20rpx;
+  width: 56rpx;
+  height: 56rpx;
+  color: #7B877F;
+  font-size: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+}
+
+.complete-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #24342D;
+}
+
+.complete-frog {
+  width: 300rpx;
+  height: 300rpx;
+  border-radius: 24rpx;
+}
+
+.complete-subtitle {
+  font-size: 32rpx;
+  color: #666;
+  font-weight: bold;
+}
+
+.action-btn {
+  width: 100%;
+  padding: 24rpx 32rpx;
+  font-size: 28rpx;
+  border-radius: 999rpx;
+  border: 2rpx solid #24342D;
+  background: transparent;
+  color: #24342D;
+}
+
+.action-btn.primary {
+  background: #24342D;
+  color: #F7F4EC;
+}
+
+/* 文化解读弹窗，采用角色墙同款单一滚动详情布局 */
+.culture-modal {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx;
+  box-sizing: border-box;
+}
+
+.culture-detail {
+  position: relative;
+  width: 100%;
+  height: 88vh;
+  padding: 28rpx;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  border-radius: 32rpx;
+}
+
+.culture-detail__close {
+  position: absolute;
+  z-index: 1;
+  top: 12rpx;
+  right: 22rpx;
+  width: 56rpx;
+  height: 56rpx;
+  color: #7B877F;
+  font-size: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+}
+
+.culture-detail__image {
+  display: block;
+  width: 100%;
+  height: 48vh;
+  min-height: 360rpx;
+  margin: 12rpx auto 8rpx;
+}
+
+.culture-detail__title {
+  color: #24342D;
+  font-size: 38rpx;
+  font-weight: 700;
+  text-align: center;
+}
+
+.culture-detail__meta {
+  margin: 8rpx 24rpx 24rpx;
+  color: #7B877F;
+  font-size: 24rpx;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.culture-detail__section {
+  padding-top: 20rpx;
+  border-top: 1rpx solid #EEE9DF;
+}
+
+.culture-detail__heading {
+  color: #1F5C46;
+  font-size: 29rpx;
+  font-weight: 700;
+}
+
+.culture-detail__paragraph {
+  margin-top: 12rpx;
+  color: #5E6A62;
+  font-size: 25rpx;
+  line-height: 1.75;
+}

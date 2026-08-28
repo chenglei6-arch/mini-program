@@ -1,161 +1,282 @@
-// 小程序运行时不做目录 index.js 自动解析，使用显式模块文件路径。
-const { patterns } = require('../../../constants/index.js')
 const auth = require('../../../utils/auth')
 const gameService = require('../../../services/games')
-const { createPuzzleLayout } = require('../../../utils/puzzle-layout.js')
-
-const RPX_BASE_WIDTH = 750
-const SIDE_PADDING_RPX = 64
-const DEFAULT_PUZZLE_COUNT = patterns.length
-// 后端下发拼图配置后，可将配置数量传入 initPuzzle(count)，布局和拖动判定无需改动。
+const contentService = require('../../../services/content')
+const { resolveAssetUrl } = require('../../../utils/assets')
 
 Component({
   data: {
-    ready: false,
-    stageWidth: 0,
-    stageHeight: 0,
-    puzzleCount: DEFAULT_PUZZLE_COUNT,
-    boardHeight: 0,
-    paletteTitleTop: 0,
-    paletteSubtitleTop: 0,
-    slots: [],
-    pieces: [],
-    placedCount: 0,
+    // 所有可选青蛙列表
+    availableFrogs: [],
+
+    // 当前选中的青蛙
+    selectedFrogId: null,
+    selectedFrogName: '',
+
+    // 当前青蛙的组件列表
+    frogComponents: [],
+    totalComponents: 0,
+
+    // 已放置的组件
+    placedComponents: [],
+    nextZIndex: 1,
+
+    // 完成状态
     completed: false,
-    submitting: false,
+    completedFrogImage: '',
+
+    // 文化解读弹窗
+    showCultureModal: false,
+    cultureData: null
   },
 
   lifetimes: {
     attached() {
-      this.initPuzzle()
-    },
+      this.loadFrogs()
+    }
   },
 
   methods: {
-    initPuzzle(requestedCount) {
-      const systemInfo = wx.getSystemInfoSync()
-      const scale = systemInfo.windowWidth / RPX_BASE_WIDTH
-      const sidePadding = SIDE_PADDING_RPX * scale
-      const stageWidth = Math.max(systemInfo.windowWidth - sidePadding, 280 * scale)
-      const layout = createPuzzleLayout({
-        count: requestedCount || DEFAULT_PUZZLE_COUNT,
-        stageWidth,
-        scale,
-        patternNames: patterns,
-      })
-
-      this.setData({
-        ready: true,
-        stageWidth,
-        stageHeight: layout.stageHeight,
-        puzzleCount: layout.count,
-        boardHeight: layout.boardHeight,
-        paletteTitleTop: layout.paletteTitleTop,
-        paletteSubtitleTop: layout.paletteSubtitleTop,
-        slots: layout.slots,
-        pieces: layout.pieces,
-      })
-    },
-
-    onPieceTouchStart(event) {
-      this.activePieceIndex = Number(event.currentTarget.dataset.index)
-    },
-
-    onPieceChange(event) {
-      const index = Number(event.currentTarget.dataset.index)
-      const piece = this.data.pieces[index]
-      if (!piece || piece.placed) return
-      const x = Number(event.detail.x)
-      const y = Number(event.detail.y)
-      this.setData({
-        [`pieces[${index}].x`]: x,
-        [`pieces[${index}].y`]: y,
-      })
-      if (event.detail.source === 'touch') this.scheduleEvaluate(index)
-    },
-
-    onPieceTouchEnd() {
-      const index = this.activePieceIndex
-      this.activePieceIndex = null
-      if (index === null || index === undefined) return
-      this.scheduleEvaluate(index)
-    },
-
-    scheduleEvaluate(index) {
-      // change 事件在不同基础库版本中可能连续触发，合并到最后一次位置后再判定。
-      if (this.evaluateTimer) clearTimeout(this.evaluateTimer)
-      this.evaluateTimer = setTimeout(() => {
-        this.evaluateTimer = null
-        this.evaluatePiece(index)
-      }, 80)
-    },
-
-    evaluatePiece(index) {
-      const piece = this.data.pieces[index]
-      const slot = this.data.slots[index]
-      if (!piece || piece.placed || !slot || this.data.completed) return
-
-      const centerX = piece.x + piece.width / 2
-      const centerY = piece.y + piece.height / 2
-      const isInside = centerX >= slot.left && centerX <= slot.left + slot.width
-        && centerY >= slot.top && centerY <= slot.top + slot.height
-
-      if (!isInside) {
+    // 加载所有青蛙列表
+    async loadFrogs() {
+      try {
+        const frogsData = await contentService.getFrogs()
         this.setData({
-          [`pieces[${index}].x`]: piece.initialX,
-          [`pieces[${index}].y`]: piece.initialY,
+          availableFrogs: frogsData.items || []
         })
-        wx.showToast({ title: '放置位置不正确', icon: 'none' })
+      } catch (error) {
+        console.error('加载青蛙列表失败:', error)
+        wx.showToast({ title: '加载失败', icon: 'none' })
+      }
+    },
+
+    // 选择要拼的青蛙
+    async onSelectFrog(e) {
+      const frogId = e.currentTarget.dataset.frogId
+
+      if (this.data.selectedFrogId === frogId) {
+        return // 已选中，不重复处理
+      }
+
+      // 如果正在拼其他青蛙，提示确认
+      if (this.data.placedComponents.length > 0) {
+        const result = await this.showConfirm('切换青蛙', '当前进度将丢失，确认切换吗？')
+        if (!result) return
+      }
+
+      try {
+        wx.showLoading({ title: '加载中...' })
+
+        // 获取青蛙组件列表
+        const componentsData = await gameService.getFrogComponents(frogId)
+        const frog = this.data.availableFrogs.find(f => f.id === frogId)
+
+        // 处理组件图片URL
+        const components = (componentsData.components || []).map(comp => ({
+          ...comp,
+          assetUrl: resolveAssetUrl(comp.assetUrl)
+        }))
+
+        this.setData({
+          selectedFrogId: frogId,
+          selectedFrogName: frog ? frog.name : '',
+          frogComponents: components,
+          totalComponents: componentsData.totalComponents || 0,
+          placedComponents: [],
+          nextZIndex: 1,
+          completed: false
+        })
+
+        wx.hideLoading()
+      } catch (error) {
+        wx.hideLoading()
+        console.error('加载组件失败:', error)
+        wx.showToast({ title: '加载失败', icon: 'none' })
+      }
+    },
+
+    // 点击添加组件
+    onAddComponent(e) {
+      const componentId = e.currentTarget.dataset.componentId
+      const component = this.data.frogComponents.find(c => c.id === componentId)
+
+      if (!component) return
+
+      // 检查是否解锁
+      if (!component.unlocked) {
+        wx.showToast({ title: '组件未解锁', icon: 'none' })
         return
       }
 
-      const placedCount = this.data.placedCount + 1
-      const snapX = slot.left + (slot.width - piece.width) / 2
-      const snapY = slot.top + (slot.height - piece.height) / 2
-      this.setData({
-        [`pieces[${index}].x`]: snapX,
-        [`pieces[${index}].y`]: snapY,
-        [`pieces[${index}].placed`]: true,
-        [`slots[${index}].filled`]: true,
-        [`slots[${index}].filledName`]: piece.name,
-        placedCount,
+      // 检查是否已添加
+      const alreadyPlaced = this.data.placedComponents.some(c => c.id === componentId)
+      if (alreadyPlaced) {
+        wx.showToast({ title: '该组件已添加', icon: 'none' })
+        return
+      }
+
+      // 添加到画布
+      const newComponent = {
+        id: componentId,
+        name: component.name,
+        assetUrl: resolveAssetUrl(component.assetUrl),
+        zIndex: this.data.nextZIndex
+      }
+
+      const updatedComponents = [...this.data.placedComponents, newComponent]
+
+      // 更新组件库中的状态
+      const updatedFrogComponents = this.data.frogComponents.map(c => {
+        if (c.id === componentId) {
+          return { ...c, placed: true }
+        }
+        return c
       })
-      wx.vibrateShort({ type: 'light' })
-      if (placedCount === this.data.pieces.length) this.completeGame()
-    },
 
-    completeGame() {
-      if (this.data.submitting || this.data.completed) return
-      this.setData({ submitting: true })
-      // 当前用本地几何判定提供即时反馈，接入正式接口后应由服务端复核完成结果。
-      auth.withLogin(() => gameService.submitGameEvent('paper-cutting', { type: 'completed', patternCount: this.data.pieces.length }))
-        .then(() => {
-          this.setData({ completed: true, submitting: false })
-          wx.showToast({ title: '剪纸拼合完成', icon: 'success' })
-        })
-        .catch(() => {
-          this.setData({ submitting: false })
-          wx.showToast({ title: '进度保存失败', icon: 'none' })
-        })
-    },
-
-    resetGame() {
       this.setData({
-        pieces: this.data.pieces.map((item) => ({
-          ...item,
-          x: item.initialX,
-          y: item.initialY,
-          placed: false,
-        })),
-        slots: this.data.slots.map((item) => ({ ...item, filled: false, filledName: '' })),
-        placedCount: 0,
+        placedComponents: updatedComponents,
+        frogComponents: updatedFrogComponents,
+        nextZIndex: this.data.nextZIndex + 1
+      })
+
+      // 检查是否完成
+      if (updatedComponents.length === this.data.totalComponents) {
+        this.onPuzzleComplete()
+      }
+    },
+
+    // 点击已放置的组件（删除）
+    async onComponentTap(e) {
+      const index = e.currentTarget.dataset.index
+      const component = this.data.placedComponents[index]
+
+      if (!component) return
+
+      const result = await this.showConfirm('删除组件', `确定删除「${component.name}」吗？`)
+      if (!result) return
+
+      // 从画布移除
+      const updatedPlaced = this.data.placedComponents.filter((_, i) => i !== index)
+
+      // 更新组件库状态
+      const updatedFrogComponents = this.data.frogComponents.map(c => {
+        if (c.id === component.id) {
+          return { ...c, placed: false }
+        }
+        return c
+      })
+
+      this.setData({
+        placedComponents: updatedPlaced,
+        frogComponents: updatedFrogComponents
+      })
+    },
+
+    // 拼图完成
+    async onPuzzleComplete() {
+      this.setData({ completed: true })
+
+      wx.vibrateShort({ type: 'heavy' })
+      wx.showToast({ title: '拼图完成！', icon: 'success', duration: 2000 })
+
+      // 获取完整青蛙图片
+      const frog = this.data.availableFrogs.find(f => f.id === this.data.selectedFrogId)
+      this.setData({
+        completedFrogImage: frog ? frog.assetUrl : ''
+      })
+
+      // 提交完成记录
+      this.submitCompletion()
+    },
+
+    // 关闭完成提示，保留已拼好的画布
+    onCloseComplete() {
+      this.setData({ completed: false })
+    },
+
+    async submitCompletion() {
+      try {
+        const payload = {
+          timeCost: 0, // TODO: 添加计时
+          components: this.data.placedComponents.map(c => c.id)
+        }
+
+        await auth.withLogin(() =>
+          gameService.submitFrogComplete(
+            this.data.selectedFrogId,
+            payload,
+            `frog-${this.data.selectedFrogId}-${Date.now()}`
+          )
+        )
+      } catch (error) {
+        console.error('提交完成记录失败:', error)
+      }
+    },
+
+    // 查看文化解读
+    async onViewCulture() {
+      try {
+        wx.showLoading({ title: '加载中...' })
+        const frogDetail = await contentService.getFrogDetail(this.data.selectedFrogId)
+
+        this.setData({
+          showCultureModal: true,
+          cultureData: frogDetail
+        })
+
+        wx.hideLoading()
+      } catch (error) {
+        wx.hideLoading()
+        console.error('加载文化解读失败:', error)
+        wx.showToast({ title: '加载失败', icon: 'none' })
+      }
+    },
+
+    hideCultureModal() {
+      this.setData({
+        showCultureModal: false,
+        cultureData: null
+      })
+    },
+
+    stopPropagation() {
+      // 阻止事件冒泡
+    },
+
+    // 拼其他青蛙
+    onSelectAnother() {
+      this.setData({
+        selectedFrogId: null,
+        selectedFrogName: '',
+        frogComponents: [],
+        totalComponents: 0,
+        placedComponents: [],
+        nextZIndex: 1,
         completed: false,
-        submitting: false,
+        completedFrogImage: ''
+      })
+    },
+
+    // 工具函数：显示确认对话框
+    showConfirm(title, content) {
+      return new Promise((resolve) => {
+        wx.showModal({
+          title,
+          content,
+          success: (res) => {
+            resolve(res.confirm)
+          },
+          fail: () => {
+            resolve(false)
+          }
+        })
       })
     },
 
     onShareAppMessage() {
-      return { title: '我完成了一幅满族剪纸', path: '/pages/games/paper-cutting/paper-cutting' }
-    },
-  },
+      return {
+        title: `我完成了「${this.data.selectedFrogName || '青蛙拼图'}」`,
+        path: '/pages/games/paper-cutting/paper-cutting'
+      }
+    }
+  }
 })
