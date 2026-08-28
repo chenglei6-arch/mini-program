@@ -79,6 +79,6 @@ app:
 logging:
   level:
     root: INFO
-    com.chenglei.miniprogram: DEBUG
+    com.chenglei.miniprogram: INFO
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %highlight(%-5level) %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} : %m%n%wEx"

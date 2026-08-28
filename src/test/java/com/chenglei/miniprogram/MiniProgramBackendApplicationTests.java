@@ -10,12 +10,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.chenglei.miniprogram.integration.ContentCatalogMapper;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -31,6 +34,17 @@ class MiniProgramBackendApplicationTests {
 
     @Autowired
     private ContentCatalogMapper contentCatalogMapper;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @AfterEach
+    void clearGuardianState() {
+        jdbcTemplate.update("DELETE FROM guardian_event");
+        jdbcTemplate.update("DELETE FROM guardian_round");
+        jdbcTemplate.update("DELETE FROM guardian_collection");
+        jdbcTemplate.update("DELETE FROM guardian_daily_state");
+    }
 
     @Test
     void contextLoadsAndPingEndpointResponds() throws Exception {
@@ -96,7 +110,7 @@ class MiniProgramBackendApplicationTests {
         mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.user.id").value("local-user"))
-            .andExpect(jsonPath("$.data.stats.frogs").value(1));
+            .andExpect(jsonPath("$.data.stats.frogs").value(0));
 
         mockMvc.perform(get("/v1/welfare/summary").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk())
@@ -208,6 +222,89 @@ class MiniProgramBackendApplicationTests {
             .andExpect(jsonPath("$.data.completed").value(0));
     }
 
+    @Test
+    void guardianGameValidatesAnswersTracksCollectionAndGrantsShareBonus() throws Exception {
+        String token = loginToken("guardian-test-code");
+
+        mockMvc.perform(get("/v1/games/guardian/progress").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.completed").value(0))
+            .andExpect(jsonPath("$.data.total").value(9))
+            .andExpect(jsonPath("$.data.state.remainingDraws").value(3))
+            .andExpect(jsonPath("$.data.state.activeChallenge").doesNotExist());
+
+        JsonNode firstChallenge = drawGuardian(token, "guardian-draw-0001");
+        String firstRoundId = firstChallenge.path("roundId").asText();
+        String firstFrogId = firstChallenge.path("frogId").asText();
+        String firstCorrectPattern = String.valueOf(contentCatalogMapper.selectFrog(firstFrogId, false).get("pattern"));
+        String wrongPattern = null;
+        for (JsonNode option : firstChallenge.path("options")) {
+            if (!option.asText().equals(firstCorrectPattern)) {
+                wrongPattern = option.asText();
+                break;
+            }
+        }
+        if (wrongPattern == null) throw new IllegalStateException("守护神题目未返回错误选项");
+
+        mockMvc.perform(post("/v1/games/guardian/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "guardian-answer-0001")
+                .contentType("application/json")
+                .content(answerEvent(firstRoundId, wrongPattern)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.action.correct").value(false))
+            .andExpect(jsonPath("$.data.progress.completed").value(0))
+            .andExpect(jsonPath("$.data.progress.state.activeChallenge.roundId").value(firstRoundId));
+
+        String correctAnswer = answerEvent(firstRoundId, firstCorrectPattern);
+        mockMvc.perform(post("/v1/games/guardian/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "guardian-answer-0002")
+                .contentType("application/json")
+                .content(correctAnswer))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.action.correct").value(true))
+            .andExpect(jsonPath("$.data.action.guardianCard.id").value(firstFrogId))
+            .andExpect(jsonPath("$.data.action.newlyUnlockedBadges[0].id").value("guardian-first"))
+            .andExpect(jsonPath("$.data.progress.completed").value(1))
+            .andExpect(jsonPath("$.data.progress.state.activeChallenge").doesNotExist());
+
+        mockMvc.perform(post("/v1/games/guardian/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "guardian-answer-0002")
+                .contentType("application/json")
+                .content(correctAnswer))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.duplicated").value(true))
+            .andExpect(jsonPath("$.data.progress.completed").value(1));
+
+        mockMvc.perform(post("/v1/games/guardian/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "guardian-share-0001")
+                .contentType("application/json")
+                .content("{\"type\":\"share\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.action.shareBonusGranted").value(1))
+            .andExpect(jsonPath("$.data.progress.state.shareBonusClaimed").value(true))
+            .andExpect(jsonPath("$.data.progress.state.remainingDraws").value(3));
+
+        answerGuardianCorrectly(token, "guardian-draw-0002", "guardian-answer-0003");
+        answerGuardianCorrectly(token, "guardian-draw-0003", "guardian-answer-0004");
+
+        mockMvc.perform(get("/v1/games/guardian/progress").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.completed").value(3))
+            .andExpect(jsonPath("$.data.state.collectedFrogIds.length()").value(3))
+            .andExpect(jsonPath("$.data.state.badges[1].id").value("guardian-messenger"))
+            .andExpect(jsonPath("$.data.state.badges[1].unlocked").value(true));
+
+        mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.stats.frogs").value(3))
+            .andExpect(jsonPath("$.data.badges[3].id").value("guardian-messenger"))
+            .andExpect(jsonPath("$.data.badges[3].unlocked").value(true));
+    }
+
     private String loginToken(String code) throws Exception {
         MvcResult login = mockMvc.perform(post("/v1/auth/wechat-login")
                 .contentType("application/json")
@@ -223,5 +320,40 @@ class MiniProgramBackendApplicationTests {
                 .contentType("application/json")
                 .content("{\"type\":\"reset\"}"))
             .andExpect(status().isOk());
+    }
+
+    private JsonNode drawGuardian(String token, String idempotencyKey) throws Exception {
+        MvcResult result = mockMvc.perform(post("/v1/games/guardian/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", idempotencyKey)
+                .contentType("application/json")
+                .content("{\"type\":\"draw\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.action.drawn").value(true))
+            .andExpect(jsonPath("$.data.progress.state.remainingDraws").isNumber())
+            .andExpect(jsonPath("$.data.progress.state.activeChallenge.options.length()").value(3))
+            .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString())
+            .path("data").path("progress").path("state").path("activeChallenge");
+    }
+
+    private void answerGuardianCorrectly(String token, String drawKey, String answerKey) throws Exception {
+        JsonNode challenge = drawGuardian(token, drawKey);
+        String frogId = challenge.path("frogId").asText();
+        String pattern = String.valueOf(contentCatalogMapper.selectFrog(frogId, false).get("pattern"));
+        mockMvc.perform(post("/v1/games/guardian/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", answerKey)
+                .contentType("application/json")
+                .content(answerEvent(challenge.path("roundId").asText(), pattern)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.action.correct").value(true));
+    }
+
+    private String answerEvent(String roundId, String pattern) throws Exception {
+        return objectMapper.writeValueAsString(java.util.Map.of(
+            "type", "answer",
+            "payload", java.util.Map.of("roundId", roundId, "pattern", pattern)
+        ));
     }
 }

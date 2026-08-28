@@ -618,11 +618,11 @@ components:
       properties:
         type:
           type: string
-          enum: [started, progressed, completed, unlocked, answered, story_choice, reset]
+          enum: [started, progressed, completed, unlocked, answered, story_choice, reset, draw, answer, share]
         payload:
           type: object
           additionalProperties: true
-          description: '故事事件使用 choiceId，例如 { "choiceId": "A" }。'
+          description: '故事事件使用 choiceId，例如 { "choiceId": "A" }；守护神 answer 使用 roundId 与 pattern，例如 { "roundId": "uuid", "pattern": "蛙纹" }。draw 和 share 不需要 payload。'
         clientOccurredAt:
           type: string
           format: date-time
@@ -634,6 +634,10 @@ components:
         duplicated: { type: boolean }
         gameId: { type: string }
         progress: { $ref: '#/components/schemas/GameProgress' }
+        action:
+          type: object
+          additionalProperties: true
+          description: '守护神事件结果。draw 返回 drawn 与题目提示；answer 返回 correct、guardianCard 与 newlyUnlockedBadges；share 返回 shareBonusGranted。guardian 进度 state 包含当天日期、剩余次数、分享领取状态、图鉴、当前题目和徽章。'
     GameEventResponse:
       allOf:
         - $ref: '#/components/schemas/ResponseMeta'

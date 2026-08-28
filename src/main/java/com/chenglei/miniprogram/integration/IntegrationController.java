@@ -4,6 +4,7 @@ import com.chenglei.miniprogram.auth.DevSessionService;
 import com.chenglei.miniprogram.common.api.ApiResponse;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
+import com.chenglei.miniprogram.guardian.GuardianGameService;
 import com.chenglei.miniprogram.story.StoryGameService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -30,46 +31,56 @@ public class IntegrationController {
 
     private final DevSessionService sessions;
     private final StoryGameService storyGameService;
+    private final GuardianGameService guardianGameService;
     private final ContentCatalogService content;
     private final Map<String, Map<String, Integer>> progress = new ConcurrentHashMap<>();
     private final Map<String, DevSessionService.User> profiles = new ConcurrentHashMap<>();
 
-    public IntegrationController(DevSessionService sessions, StoryGameService storyGameService, ContentCatalogService content) {
+    public IntegrationController(DevSessionService sessions, StoryGameService storyGameService,
+        GuardianGameService guardianGameService, ContentCatalogService content) {
         this.sessions = sessions;
         this.storyGameService = storyGameService;
+        this.guardianGameService = guardianGameService;
         this.content = content;
     }
 
     @GetMapping("/home/summary")
-    public ApiResponse<Map<String, Object>> home() {
+    public ApiResponse<Map<String, Object>> home(Authentication authentication) {
+        String userId = user(authentication).id();
         Map<String, Object> response = new LinkedHashMap<>(content.homeConfig());
         response.put("games", content.games());
-        response.put("frogs", content.frogs());
+        response.put("frogs", guardianGameService.applyUnlockState(content.frogs(), userId));
         response.put("patterns", content.patterns());
         response.put("activity", content.activities());
         return ApiResponse.success(response);
     }
 
     @GetMapping("/content/frogs")
-    public ApiResponse<Map<String, Object>> frogs() {
+    public ApiResponse<Map<String, Object>> frogs(Authentication authentication) {
+        String userId = user(authentication).id();
+        List<Map<String, Object>> frogs = guardianGameService.applyUnlockState(content.frogs(), userId);
         Map<String, Object> response = new LinkedHashMap<>();
-        response.put("items", content.frogs());
-        response.put("total", content.frogs().size());
+        response.put("items", frogs);
+        response.put("total", frogs.size());
         return ApiResponse.success(response);
     }
 
     @GetMapping("/content/frogs/{frogId}")
-    public ApiResponse<Map<String, Object>> frogDetail(@PathVariable String frogId) {
+    public ApiResponse<Map<String, Object>> frogDetail(Authentication authentication, @PathVariable String frogId) {
         Map<String, Object> frog = content.frog(frogId);
         if (frog == null) throw new BusinessException(ErrorCode.NOT_FOUND, "林蛙不存在");
-        return ApiResponse.success(frog);
+        return ApiResponse.success(guardianGameService.applyUnlockState(frog, user(authentication).id()));
     }
 
     @GetMapping("/me/profile")
     public ApiResponse<Map<String, Object>> profile(Authentication authentication) {
         DevSessionService.User user = user(authentication);
-        return ApiResponse.success(Map.of("user", user, "stats", Map.of("frogs", 1, "frogsTotal", 9, "patterns", 1,
-            "patternsTotal", content.patterns().size(), "badges", 1, "badgesTotal", content.badges().size(), "contribution", "1.00"), "badges", content.badges(), "orders", List.of()));
+        List<Map<String, Object>> badges = guardianGameService.applyBadgeState(content.badges(), user.id());
+        int frogCount = guardianGameService.progress(user.id()).get("completed") instanceof Number count ? count.intValue() : 0;
+        int badgeCount = (int) badges.stream().filter(badge -> Boolean.TRUE.equals(badge.get("unlocked"))).count();
+        return ApiResponse.success(Map.of("user", user, "stats", Map.of("frogs", frogCount, "frogsTotal", 9, "patterns", 0,
+            "patternsTotal", content.patterns().size(), "badges", badgeCount, "badgesTotal", badges.size(), "contribution", "0.00"),
+            "badges", badges, "orders", List.of()));
     }
 
     @PatchMapping("/me/profile")
@@ -87,6 +98,7 @@ public class IntegrationController {
     public ApiResponse<Map<String, Object>> gameProgress(Authentication authentication, @PathVariable String gameId) {
         ensureGame(gameId);
         if (gameId.equals("story")) return ApiResponse.success(storyGameService.progress(authentication));
+        if (gameId.equals("guardian")) return ApiResponse.success(guardianGameService.progress(user(authentication).id()));
         int completed = progressFor(authentication, gameId).getOrDefault("completed", 0);
         return ApiResponse.success(Map.of("gameId", gameId, "completed", completed, "total", gameId.equals("story") ? 5 : 1,
             "finished", completed > 0, "version", 1, "updatedAt", Instant.now()));
@@ -103,6 +115,17 @@ public class IntegrationController {
                 throw new BusinessException(ErrorCode.BAD_REQUEST, "故事事件必须包含 choiceId");
             }
             return ApiResponse.success(storyGameService.choose(authentication, idempotencyKey, choiceId));
+        }
+        if (gameId.equals("guardian")) {
+            String userId = user(authentication).id();
+            if (event.type().equals("draw")) return ApiResponse.success(guardianGameService.draw(userId, idempotencyKey));
+            if (event.type().equals("share")) return ApiResponse.success(guardianGameService.claimShareBonus(userId, idempotencyKey));
+            if (event.type().equals("answer") && event.payload() != null
+                && event.payload().get("roundId") instanceof String roundId
+                && event.payload().get("pattern") instanceof String pattern) {
+                return ApiResponse.success(guardianGameService.answer(userId, idempotencyKey, roundId, pattern));
+            }
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "守护神事件仅支持 draw、answer 或 share；answer 必须包含 roundId 和 pattern");
         }
         Map<String, Integer> state = progressFor(authentication, gameId);
         int completed = "completed".equals(event.type()) || "unlocked".equals(event.type())

@@ -91,7 +91,6 @@ public class ContentCatalogService {
         List<Map<String, Object>> frogs = mapper.selectFrogs(includeTestData);
         for (int index = 0; index < frogs.size(); index++) {
             normalizeKeys(frogs.get(index), "shortName", "assetUrl", "sourceUrl");
-            frogs.get(index).put("unlocked", index == 0);
         }
         return frogs;
     }
@@ -100,7 +99,6 @@ public class ContentCatalogService {
         Map<String, Object> frog = mapper.selectFrog(id, includeTestData);
         if (frog == null) return null;
         normalizeKeys(frog, "shortName", "assetUrl", "sourceUrl");
-        frog.put("unlocked", "forest".equals(id));
         List<Map<String, Object>> sections = mapper.selectSections(id);
         for (Map<String, Object> section : sections) {
             Number sectionId = (Number) section.get("id");
@@ -116,9 +114,13 @@ public class ContentCatalogService {
     public List<String> patterns() { return mapper.selectPatterns(includeTestData); }
 
     public List<Map<String, Object>> badges() {
-        List<Map<String, Object>> badges = mapper.selectBadges(includeTestData);
-        for (int index = 0; index < badges.size(); index++) badges.get(index).put("unlocked", index == 0);
-        return badges;
+        return mapper.selectBadges(includeTestData);
+    }
+
+    public List<Map<String, Object>> guardianFrogs() {
+        List<Map<String, Object>> frogs = mapper.selectFrogs(false);
+        for (Map<String, Object> frog : frogs) normalizeKeys(frog, "shortName", "assetUrl", "sourceUrl");
+        return frogs;
     }
 
     public Map<String, String> homeConfig() {

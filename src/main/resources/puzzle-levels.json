@@ -1,0 +1,105 @@
+{
+  "levels": [
+    {
+      "id": "level-1",
+      "name": "初识蛙鸣",
+      "difficulty": "easy",
+      "gridRows": 2,
+      "gridCols": 2,
+      "targetFrogs": [
+        { "frogId": "forest", "gridX": 0, "gridY": 0 },
+        { "frogId": "lotus", "gridX": 1, "gridY": 0 }
+      ],
+      "reward": {
+        "badge": "paper-beginner",
+        "points": 10
+      }
+    },
+    {
+      "id": "level-2",
+      "name": "山林守护",
+      "difficulty": "easy",
+      "gridRows": 2,
+      "gridCols": 2,
+      "targetFrogs": [
+        { "frogId": "forest", "gridX": 0, "gridY": 0 },
+        { "frogId": "ginseng", "gridX": 1, "gridY": 0 },
+        { "frogId": "hibernation", "gridX": 0, "gridY": 1 }
+      ],
+      "reward": {
+        "points": 15
+      }
+    },
+    {
+      "id": "level-3",
+      "name": "四季轮回",
+      "difficulty": "medium",
+      "gridRows": 2,
+      "gridCols": 2,
+      "targetFrogs": [
+        { "frogId": "snow", "gridX": 0, "gridY": 0 },
+        { "frogId": "hibernation", "gridX": 1, "gridY": 0 },
+        { "frogId": "lotus", "gridX": 0, "gridY": 1 },
+        { "frogId": "forest", "gridX": 1, "gridY": 1 }
+      ],
+      "reward": {
+        "points": 20
+      }
+    },
+    {
+      "id": "level-4",
+      "name": "健康守护",
+      "difficulty": "medium",
+      "gridRows": 3,
+      "gridCols": 2,
+      "targetFrogs": [
+        { "frogId": "immune", "gridX": 0, "gridY": 0 },
+        { "frogId": "youth", "gridX": 1, "gridY": 0 },
+        { "frogId": "lung", "gridX": 0, "gridY": 1 },
+        { "frogId": "ginseng", "gridX": 1, "gridY": 1 }
+      ],
+      "reward": {
+        "points": 25
+      }
+    },
+    {
+      "id": "level-5",
+      "name": "和谐生态",
+      "difficulty": "hard",
+      "gridRows": 3,
+      "gridCols": 2,
+      "targetFrogs": [
+        { "frogId": "forest", "gridX": 0, "gridY": 0 },
+        { "frogId": "insect", "gridX": 1, "gridY": 0 },
+        { "frogId": "lotus", "gridX": 0, "gridY": 1 },
+        { "frogId": "ginseng", "gridX": 1, "gridY": 1 },
+        { "frogId": "hibernation", "gridX": 0, "gridY": 2 }
+      ],
+      "reward": {
+        "points": 30
+      }
+    },
+    {
+      "id": "level-6",
+      "name": "蛙鸣九州",
+      "difficulty": "hard",
+      "gridRows": 3,
+      "gridCols": 3,
+      "targetFrogs": [
+        { "frogId": "forest", "gridX": 0, "gridY": 0 },
+        { "frogId": "lotus", "gridX": 1, "gridY": 0 },
+        { "frogId": "snow", "gridX": 2, "gridY": 0 },
+        { "frogId": "youth", "gridX": 0, "gridY": 1 },
+        { "frogId": "immune", "gridX": 1, "gridY": 1 },
+        { "frogId": "hibernation", "gridX": 2, "gridY": 1 },
+        { "frogId": "ginseng", "gridX": 0, "gridY": 2 },
+        { "frogId": "lung", "gridX": 1, "gridY": 2 },
+        { "frogId": "insect", "gridX": 2, "gridY": 2 }
+      ],
+      "reward": {
+        "badge": "paper-master",
+        "points": 50
+      }
+    }
+  ]
+}
