@@ -13,13 +13,20 @@
   "games": [
     {"id":"paper-cutting","title":"指尖剪林蛙","subtitle":"拼一张剪纸，认识一组纹样","path":"/pages/games/paper-cutting/paper-cutting"},
     {"id":"story","title":"林蛙谷寻踪","subtitle":"听一段说部，走完一段旅程","path":"/pages/games/story/story"},
-    {"id":"guardian","title":"摇一摇·守护神","subtitle":"解锁你的林蛙守护神","path":"/pages/games/guardian/guardian"}
+    {"id":"guardian","title":"摇一摇·守护神","subtitle":"解锁你的林蛙守护神","path":"/pages/games/guardian/guardian"},
+    {"id":"forest-quiz","title":"林蛙知识闯关","subtitle":"答题解锁主题徽章","path":"/pages/games/forest-quiz/forest-quiz"}
   ],
   "patterns": ["蛙纹","山林纹","水波纹","云纹","花叶纹"],
   "badges": [
     {"id":"paper-beginner","name":"剪纸新手","level":"bronze"},
     {"id":"story-listener","name":"故事聆听者","level":"bronze"},
-    {"id":"guardian-first","name":"守护神初遇","level":"bronze"}
+    {"id":"guardian-first","name":"守护神初遇","level":"bronze"},
+    {"id":"quiz-morphology","name":"形态徽章","level":"bronze"},
+    {"id":"quiz-distribution","name":"分布徽章","level":"bronze"},
+    {"id":"quiz-diet","name":"食性徽章","level":"bronze"},
+    {"id":"quiz-hibernation","name":"冬眠徽章","level":"bronze"},
+    {"id":"quiz-reproduction","name":"繁殖徽章","level":"bronze"},
+    {"id":"quiz-protection","name":"保护徽章","level":"bronze"}
   ],
   "home": {"brand":"纸韵蛙鸣·哈什蚂传奇","slogan":"拼一张剪纸，听一段说部","fundAmount":"12,480.00","fundUpdatedAt":"2026-08-17 12:00"},
   "activities": ["吉林·张同学刚刚集齐了第6枚徽章","辽宁·李同学解锁了蛙纹","黑龙江·王同学完成了林蛙谷第1章"],

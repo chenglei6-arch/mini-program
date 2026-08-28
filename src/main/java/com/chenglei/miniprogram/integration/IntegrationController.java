@@ -5,6 +5,7 @@ import com.chenglei.miniprogram.common.api.ApiResponse;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
 import com.chenglei.miniprogram.guardian.GuardianGameService;
+import com.chenglei.miniprogram.quiz.ForestQuizGameService;
 import com.chenglei.miniprogram.story.StoryGameService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -32,15 +33,17 @@ public class IntegrationController {
     private final DevSessionService sessions;
     private final StoryGameService storyGameService;
     private final GuardianGameService guardianGameService;
+    private final ForestQuizGameService forestQuizGameService;
     private final ContentCatalogService content;
     private final Map<String, Map<String, Integer>> progress = new ConcurrentHashMap<>();
     private final Map<String, DevSessionService.User> profiles = new ConcurrentHashMap<>();
 
     public IntegrationController(DevSessionService sessions, StoryGameService storyGameService,
-        GuardianGameService guardianGameService, ContentCatalogService content) {
+        GuardianGameService guardianGameService, ForestQuizGameService forestQuizGameService, ContentCatalogService content) {
         this.sessions = sessions;
         this.storyGameService = storyGameService;
         this.guardianGameService = guardianGameService;
+        this.forestQuizGameService = forestQuizGameService;
         this.content = content;
     }
 
@@ -99,6 +102,7 @@ public class IntegrationController {
         ensureGame(gameId);
         if (gameId.equals("story")) return ApiResponse.success(storyGameService.progress(authentication));
         if (gameId.equals("guardian")) return ApiResponse.success(guardianGameService.progress(user(authentication).id()));
+        if (gameId.equals("forest-quiz")) return ApiResponse.success(forestQuizGameService.progress(user(authentication).id()));
         int completed = progressFor(authentication, gameId).getOrDefault("completed", 0);
         return ApiResponse.success(Map.of("gameId", gameId, "completed", completed, "total", gameId.equals("story") ? 5 : 1,
             "finished", completed > 0, "version", 1, "updatedAt", Instant.now()));
@@ -126,6 +130,16 @@ public class IntegrationController {
                 return ApiResponse.success(guardianGameService.answer(userId, idempotencyKey, roundId, pattern));
             }
             throw new BusinessException(ErrorCode.BAD_REQUEST, "守护神事件仅支持 draw、answer 或 share；answer 必须包含 roundId 和 pattern");
+        }
+        if (gameId.equals("forest-quiz")) {
+            if (event.type().equals("quiz_answer") && event.payload() != null
+                && event.payload().get("levelId") instanceof String levelId
+                && event.payload().get("questionId") instanceof String questionId
+                && event.payload().get("optionId") instanceof String optionId) {
+                return ApiResponse.success(forestQuizGameService.answer(user(authentication).id(), idempotencyKey,
+                    levelId, questionId, optionId));
+            }
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "知识闯关事件必须包含 levelId、questionId 和 optionId");
         }
         Map<String, Integer> state = progressFor(authentication, gameId);
         int completed = "completed".equals(event.type()) || "unlocked".equals(event.type())
@@ -176,7 +190,7 @@ public class IntegrationController {
     }
 
     private static void ensureGame(String gameId) {
-        if (!List.of("paper-cutting", "story", "guardian").contains(gameId)) throw new IllegalArgumentException("游戏不存在");
+        if (!List.of("paper-cutting", "story", "guardian", "forest-quiz").contains(gameId)) throw new IllegalArgumentException("游戏不存在");
     }
 
     public record ProfilePatch(@Size(min = 1, max = 64) String nickname, @Size(max = 512) String avatarUrl) { }

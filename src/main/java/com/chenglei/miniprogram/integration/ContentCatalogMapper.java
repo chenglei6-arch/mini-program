@@ -42,7 +42,7 @@ public interface ContentCatalogMapper {
     @Select("SELECT content FROM content_frog_paragraph WHERE section_id=#{sectionId} ORDER BY sort_order")
     List<String> selectParagraphs(@Param("sectionId") Long sectionId);
 
-    @Insert("INSERT INTO content_game (id,title,subtitle,path,sort_order,enabled) VALUES (#{id},#{title},#{subtitle},#{path},#{sortOrder},1)")
+    @Insert("INSERT INTO content_game (id,title,subtitle,path,sort_order,enabled) SELECT #{id},#{title},#{subtitle},#{path},#{sortOrder},1 WHERE NOT EXISTS (SELECT 1 FROM content_game WHERE id=#{id})")
     int insertGame(@Param("id") String id, @Param("title") String title, @Param("subtitle") String subtitle,
         @Param("path") String path, @Param("sortOrder") int sortOrder);
 
@@ -55,7 +55,7 @@ public interface ContentCatalogMapper {
     @Select("<script>SELECT name FROM content_pattern WHERE enabled=1 <if test='includeTestData == false'>AND is_test=0 </if>ORDER BY sort_order</script>")
     List<String> selectPatterns(@Param("includeTestData") boolean includeTestData);
 
-    @Insert("INSERT INTO content_badge (id,name,level,sort_order,enabled) VALUES (#{id},#{name},#{level},#{sortOrder},1)")
+    @Insert("INSERT INTO content_badge (id,name,level,sort_order,enabled) SELECT #{id},#{name},#{level},#{sortOrder},1 WHERE NOT EXISTS (SELECT 1 FROM content_badge WHERE id=#{id})")
     int insertBadge(@Param("id") String id, @Param("name") String name, @Param("level") String level,
         @Param("sortOrder") int sortOrder);
 
