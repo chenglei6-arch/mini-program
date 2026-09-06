@@ -40,8 +40,19 @@ public class RequestIdFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } finally {
             long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
-            log.info("{} {} -> {} ({} ms)", request.getMethod(), request.getRequestURI(), response.getStatus(), elapsedMs);
+            log.info("{} {} -> {} ({} ms) clientIp={}", request.getMethod(), request.getRequestURI(),
+                response.getStatus(), elapsedMs, clientIp(request));
             MDC.remove("requestId");
         }
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (StringUtils.hasText(forwardedFor)) {
+            return forwardedFor.split(",", 2)[0].trim();
+        }
+
+        String realIp = request.getHeader("X-Real-IP");
+        return StringUtils.hasText(realIp) ? realIp.trim() : request.getRemoteAddr();
     }
 }
