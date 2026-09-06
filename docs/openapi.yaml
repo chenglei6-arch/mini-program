@@ -276,7 +276,7 @@ components:
       required: true
       schema:
         type: string
-        enum: [paper-cutting, story, guardian]
+        enum: [paper-cutting, story, guardian, forest-quiz]
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -415,7 +415,7 @@ components:
       properties:
         id:
           type: string
-          enum: [paper-cutting, story, guardian]
+          enum: [paper-cutting, story, guardian, forest-quiz]
         title:
           type: string
         subtitle:
@@ -586,7 +586,7 @@ components:
       properties:
         gameId:
           type: string
-          enum: [paper-cutting, story, guardian]
+          enum: [paper-cutting, story, guardian, forest-quiz, frog-puzzle]
         completed:
           type: integer
           minimum: 0

@@ -137,6 +137,10 @@ public class ContentCatalogService {
         return values;
     }
 
+    public List<Map<String, Object>> welfareReports() {
+        return mapper.selectWelfareReports();
+    }
+
     private static void normalizeKeys(Map<String, Object> values, String... expectedKeys) {
         for (String expectedKey : expectedKeys) {
             if (values.containsKey(expectedKey)) continue;

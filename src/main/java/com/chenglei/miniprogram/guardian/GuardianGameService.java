@@ -1,5 +1,6 @@
 package com.chenglei.miniprogram.guardian;
 
+import com.chenglei.miniprogram.badge.BadgeService;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
 import com.chenglei.miniprogram.integration.ContentCatalogService;
@@ -37,11 +38,14 @@ public class GuardianGameService {
     private final GuardianGameMapper mapper;
     private final ContentCatalogService content;
     private final ObjectMapper objectMapper;
+    private final BadgeService badgeService;
 
-    public GuardianGameService(GuardianGameMapper mapper, ContentCatalogService content, ObjectMapper objectMapper) {
+    public GuardianGameService(GuardianGameMapper mapper, ContentCatalogService content, ObjectMapper objectMapper,
+        BadgeService badgeService) {
         this.mapper = mapper;
         this.content = content;
         this.objectMapper = objectMapper;
+        this.badgeService = badgeService;
     }
 
     @Transactional(readOnly = true)
@@ -111,12 +115,11 @@ public class GuardianGameService {
 
             mapper.insertCollection(userId, String.valueOf(frog.get("id")));
             mapper.deleteRound(userId);
-            int collectionCount = mapper.selectCollectedFrogIds(userId).size();
             return eventResult(buildProgress(userId, today, true), Map.of(
                 "correct", true,
                 "newlyUnlocked", true,
                 "guardianCard", cardFor(frog),
-                "newlyUnlockedBadges", newlyUnlockedBadges(collectionCount),
+                "newlyUnlockedBadges", badgeService.evaluate(userId).newlyUnlocked(),
                 "message", "守护成功"
             ));
         });
@@ -152,18 +155,6 @@ public class GuardianGameService {
     public Map<String, Object> applyUnlockState(Map<String, Object> frog, String userId) {
         Map<String, Object> result = new LinkedHashMap<>(frog);
         result.put("unlocked", mapper.selectCollectedFrogIds(userId).contains(result.get("id")));
-        return result;
-    }
-
-    public List<Map<String, Object>> applyBadgeState(List<Map<String, Object>> badges, String userId) {
-        int collectionCount = mapper.selectCollectedFrogIds(userId).size();
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Map<String, Object> badge : badges) {
-            Map<String, Object> item = new LinkedHashMap<>(badge);
-            Integer requirement = guardianBadgeRequirement(String.valueOf(item.get("id")));
-            item.put("unlocked", requirement != null && collectionCount >= requirement);
-            result.add(item);
-        }
         return result;
     }
 
@@ -292,24 +283,6 @@ public class GuardianGameService {
             "level", badge.level(),
             "unlocked", collectionCount >= badge.requiredCollectionCount()
         )).toList();
-    }
-
-    private List<Map<String, Object>> newlyUnlockedBadges(int collectionCount) {
-        return GUARDIAN_BADGES.stream()
-            .filter(badge -> badge.requiredCollectionCount() == collectionCount)
-            .map(badge -> Map.<String, Object>of(
-                "id", badge.id(),
-                "name", badge.name(),
-                "level", badge.level()
-            )).toList();
-    }
-
-    private Integer guardianBadgeRequirement(String badgeId) {
-        return GUARDIAN_BADGES.stream()
-            .filter(badge -> badge.id().equals(badgeId))
-            .map(GuardianBadge::requiredCollectionCount)
-            .findFirst()
-            .orElse(null);
     }
 
     private int remainingDraws(int drawsUsed, boolean shareBonusClaimed) {

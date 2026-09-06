@@ -80,4 +80,8 @@ public interface ContentCatalogMapper {
 
     @Select("SELECT fund_amount AS fundAmount,updated_at AS updatedAt FROM welfare_summary WHERE id=1 AND is_test=0")
     Map<String, String> selectWelfare();
+
+    @Select("<script>SELECT id,title,period,summary,published_at AS publishedAt FROM welfare_report "
+        + "WHERE is_test=0 ORDER BY published_at DESC</script>")
+    List<Map<String, Object>> selectWelfareReports();
 }

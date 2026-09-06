@@ -1,6 +1,6 @@
 package com.chenglei.miniprogram.config;
 
-import com.chenglei.miniprogram.auth.DevBearerAuthenticationFilter;
+import com.chenglei.miniprogram.auth.BearerAuthenticationFilter;
 import com.chenglei.miniprogram.common.web.RequestIdFilter;
 import java.util.Arrays;
 import java.util.List;
@@ -23,12 +23,12 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(
         HttpSecurity http,
         RestSecurityHandler restSecurityHandler,
-        DevBearerAuthenticationFilter devBearerAuthenticationFilter
+        BearerAuthenticationFilter bearerAuthenticationFilter
     ) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> { })
-            .addFilterBefore(devBearerAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(bearerAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .formLogin(form -> form.disable())
             .httpBasic(basic -> basic.disable())

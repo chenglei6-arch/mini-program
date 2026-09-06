@@ -13,6 +13,14 @@ Compose 默认把 MySQL 映射到本机 `3307`，避免与已安装的本机 MyS
 
 接口文档位于 `http://localhost:8080/swagger-ui.html`，健康检查位于 `http://localhost:8080/actuator/health`。
 
+## 微信登录
+
+`POST /v1/auth/wechat-login` 使用 wx.login 的 code 调用微信 jscode2session，openid 对应 `app_user` 表，会话 token 持久化在 `user_session` 表（库里只存 SHA-256 摘要）。
+
+- 在 `.env` 中配置 `WECHAT_APPID` 和 `WECHAT_SECRET` 即启用真实登录；两者留空时回退到固定开发账号（仅供本地联调，生产必须配置）。
+- 会话有效期 `AUTH_ACCESS_TOKEN_TTL`（默认 7200 秒），过期后小程序自动重新 `wx.login`。
+- 错误码 `WECHAT_502` 表示微信接口调用失败（网络异常或限流）。
+
 ## 测试数据开关
 
 默认只读取正式数据；需要前后端联调测试数据时，显式设置 `CONTENT_INCLUDE_TEST_DATA=true`。配置项为 `CONTENT_INCLUDE_TEST_DATA`：
@@ -37,19 +45,20 @@ Compose 默认把 MySQL 映射到本机 `3307`，避免与已安装的本机 MyS
 ```text
 src/main/java/com/chenglei/miniprogram/
 ├── MiniProgramBackendApplication.java   # Spring Boot 启动类
-├── auth/                                # 登录和开发会话
-│   ├── AuthController.java              # 登录接口
-│   ├── DevSessionService.java           # 本地开发会话
-│   └── DevBearerAuthenticationFilter.java
-├── integration/                         # 前后端联调接口
-│   └── IntegrationController.java       # 首页、资料、游戏等接口
+├── auth/                                # 微信登录和会话
+│   ├── AuthController.java              # 登录接口（code2session，未配置密钥时回退固定开发账号）
+│   ├── SessionService.java              # 会话能力接口，DbSessionService 落库实现
+│   ├── WeChatApiService.java            # 微信 jscode2session 封装
+│   └── BearerAuthenticationFilter.java  # Bearer token 鉴权
+├── badge/                               # 徽章解锁判定与 user_badge 流水
+├── common/storage/                      # game_progress/game_event 通用进度存储
+├── guardian/ puzzle/ quiz/ story/       # 三个游戏 + 林蛙知识闯关的服务端逻辑
+├── integration/                         # 首页、资料、游戏、排行榜、公益等接口
 ├── system/                              # 系统接口
-│   └── SystemController.java            # ping 接口
 ├── config/                              # Spring Security 和 Web 配置
 ├── common/                              # 通用响应、异常和请求处理
 └── resources/
     ├── application.yml                  # 默认配置
-    ├── application-integration.yml      # 无数据库联调配置
     └── db/migration/                    # Flyway 数据库迁移脚本
 
 src/test/
@@ -57,7 +66,7 @@ src/test/
 └── resources/application.yml            # H2 测试数据库配置
 ```
 
-项目按业务模块划分 Controller，因此没有单独的 `controller` 文件夹。当前 Controller 位于 `auth`、`integration` 和 `system` 包中。
+项目按业务模块划分 Controller，因此没有单独的 `controller` 文件夹。当前 Controller 位于 `auth`、`integration`、`system` 以及 `puzzle` 包中。
 
 ## 数据库
 

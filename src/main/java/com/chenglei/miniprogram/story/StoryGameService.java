@@ -1,8 +1,13 @@
 package com.chenglei.miniprogram.story;
 
-import com.chenglei.miniprogram.auth.DevSessionService;
+import com.chenglei.miniprogram.auth.CurrentUser;
+import com.chenglei.miniprogram.badge.BadgeService;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
+import com.chenglei.miniprogram.common.storage.GameProgressStore;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,16 +15,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 《哈什玛灵纹之书》的服务端状态机。
  *
  * 文字内容和选择规则由服务端决定，客户端只提交 choiceId，避免把结局条件
- * 和数值判定暴露成可被客户端直接篡改的逻辑。
+ * 和数值判定暴露成可被客户端直接篡改的逻辑。完整状态序列化后落在
+ * game_progress 表（无数据库联调时退化为内存），事件幂等走 game_event。
  */
 @Service
 public class StoryGameService {
@@ -32,46 +37,102 @@ public class StoryGameService {
         "C", "天池冰渊 · 《冰雪传说卷》"
     );
 
-    private final Map<String, StoryState> states = new ConcurrentHashMap<>();
-    private final Map<String, String> idempotency = new ConcurrentHashMap<>();
-    private final StoryContentCatalog content;
+    /** 只按字段序列化：StoryState 没有公开 getter，读写都必须包含全部状态字段。 */
+    private static final ObjectMapper STATE_JSON = new ObjectMapper()
+        .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
+        .setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.NONE)
+        .setVisibility(PropertyAccessor.IS_GETTER, JsonAutoDetect.Visibility.NONE);
 
-    public StoryGameService(StoryContentCatalog content) {
+    private final GameProgressStore store;
+    private final StoryContentCatalog content;
+    private final BadgeService badgeService;
+
+    public StoryGameService(GameProgressStore store, StoryContentCatalog content, BadgeService badgeService) {
+        this.store = store;
         this.content = content;
+        this.badgeService = badgeService;
     }
 
     public Map<String, Object> progress(Authentication authentication) {
-        StoryState state = states.computeIfAbsent(userId(authentication), ignored -> new StoryState());
-        return state.toResponse(content);
+        return state(userId(authentication)).toResponse(content);
     }
 
-    public synchronized Map<String, Object> reset(Authentication authentication) {
+    @Transactional
+    public Map<String, Object> reset(Authentication authentication) {
         String userId = userId(authentication);
-        StoryState state = new StoryState();
-        states.put(userId, state);
-        idempotency.keySet().removeIf(key -> key.startsWith(userId + ":"));
-        return state.toResponse(content);
+        store.deleteState(userId, GAME_ID);
+        return new StoryState().toResponse(content);
     }
 
-    public synchronized Map<String, Object> choose(Authentication authentication, String idempotencyKey, String choiceId) {
+    @Transactional
+    public Map<String, Object> choose(Authentication authentication, String idempotencyKey, String choiceId) {
         String userId = userId(authentication);
         if (choiceId == null || choiceId.isBlank()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "缺少故事选择");
         }
-        StoryState state = states.computeIfAbsent(userId, ignored -> new StoryState());
-        String operationKey = userId + ":" + (idempotencyKey == null || idempotencyKey.isBlank()
-            ? UUID.randomUUID() : idempotencyKey);
-        String previous = idempotency.get(operationKey);
-        if (previous != null) {
-            if (!previous.equals(choiceId)) {
-                throw new BusinessException(ErrorCode.CONFLICT, "幂等键已经用于其他故事选择");
+        boolean dedupe = idempotencyKey != null && !idempotencyKey.isBlank();
+        if (dedupe) {
+            String previousChoice = choiceOf(store.findEventPayload(userId, GAME_ID, idempotencyKey));
+            if (previousChoice != null) {
+                if (!previousChoice.equals(choiceId)) {
+                    throw new BusinessException(ErrorCode.CONFLICT, "幂等键已经用于其他故事选择");
+                }
+                return state(userId).toResponse(content);
             }
-            return state.toResponse(content);
         }
 
+        StoryState state = lockedState(userId);
         applyChoice(state, choiceId);
-        idempotency.put(operationKey, choiceId);
+        store.saveState(userId, GAME_ID, writeState(state), state.finished);
+        if (dedupe) {
+            store.recordEvent(userId, GAME_ID, idempotencyKey, "story_choice", choicePayload(choiceId));
+        }
+        // 每次选择后同步徽章流水（故事聆听者/说部传承人在路线完成时解锁）。
+        badgeService.evaluate(userId);
         return state.toResponse(content);
+    }
+
+    private StoryState state(String userId) {
+        String json = store.loadState(userId, GAME_ID);
+        return json == null ? new StoryState() : readState(json);
+    }
+
+    private StoryState lockedState(String userId) {
+        String json = store.loadStateForUpdate(userId, GAME_ID);
+        return json == null ? new StoryState() : readState(json);
+    }
+
+    private String writeState(StoryState state) {
+        try {
+            return STATE_JSON.writeValueAsString(state);
+        } catch (Exception e) {
+            throw new IllegalStateException("故事状态序列化失败", e);
+        }
+    }
+
+    private StoryState readState(String json) {
+        try {
+            return STATE_JSON.readValue(json, StoryState.class);
+        } catch (Exception e) {
+            throw new IllegalStateException("故事状态反序列化失败", e);
+        }
+    }
+
+    private String choicePayload(String choiceId) {
+        try {
+            return STATE_JSON.writeValueAsString(Map.of("choiceId", choiceId));
+        } catch (Exception e) {
+            throw new IllegalStateException("故事事件序列化失败", e);
+        }
+    }
+
+    private String choiceOf(String payloadJson) {
+        if (payloadJson == null || payloadJson.isBlank()) return null;
+        try {
+            return STATE_JSON.readTree(payloadJson).path("choiceId").asText(null);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void applyChoice(StoryState state, String choiceId) {
@@ -606,26 +667,27 @@ public class StoryGameService {
     }
 
     private static String userId(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof DevSessionService.User user)) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CurrentUser user)) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
         return user.id();
     }
 
-    private static final class StoryState {
+    // 包可见 + 无 final 字段：Jackson 按字段序列化/反序列化，实例从无参构造创建。
+    static final class StoryState {
         private String sceneId = "intro";
         private String sceneTitle = "开场 · 萨满古洞";
         private String sceneText = "穿过缠绕盘结的老藤山隘，你来到萨满古洞。传话灵蛙告诉你，三份灵纹古卷必须留在故土，而副本可以走向人间。现在，你的第一步将迈向何方？";
         private String speaker = "传话灵蛙";
         private List<Map<String, Object>> choices = new ArrayList<>();
-        private final List<String> completedRoutes = new ArrayList<>();
-        private final List<String> routeOrder = new ArrayList<>();
-        private final Map<String, String> routeRecords = new LinkedHashMap<>();
-        private final Map<String, String> routePropagation = new LinkedHashMap<>();
-        private final List<String> inventory = new ArrayList<>();
-        private final List<String> notes = new ArrayList<>();
-        private final List<String> songs = new ArrayList<>();
-        private final List<String> temporaryStates = new ArrayList<>();
+        private List<String> completedRoutes = new ArrayList<>();
+        private List<String> routeOrder = new ArrayList<>();
+        private Map<String, String> routeRecords = new LinkedHashMap<>();
+        private Map<String, String> routePropagation = new LinkedHashMap<>();
+        private List<String> inventory = new ArrayList<>();
+        private List<String> notes = new ArrayList<>();
+        private List<String> songs = new ArrayList<>();
+        private List<String> temporaryStates = new ArrayList<>();
         private int reverence;
         private int openness;
         private int desire;
@@ -638,7 +700,7 @@ public class StoryGameService {
         private boolean finished;
         private Map<String, Object> ending;
 
-        private StoryState() {
+        StoryState() {
             choices = choices(choice("A", ROUTE_NAMES.get("A"), "追寻《山林规约卷》"), choice("B", ROUTE_NAMES.get("B"), "追寻《水泽灵物卷》"), choice("C", ROUTE_NAMES.get("C"), "追寻《冰雪传说卷》"));
         }
 

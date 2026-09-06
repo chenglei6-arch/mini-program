@@ -68,6 +68,11 @@ springdoc:
     path: /swagger-ui.html
 
 app:
+  auth:
+    access-token-ttl-seconds: ${AUTH_ACCESS_TOKEN_TTL:7200}
+  wechat:
+    appid: ${WECHAT_APPID:}
+    secret: ${WECHAT_SECRET:}
   content:
     # 默认只返回正式内容；需要联调测试数据时显式设置 CONTENT_INCLUDE_TEST_DATA=true。
     include-test-data: ${CONTENT_INCLUDE_TEST_DATA:false}

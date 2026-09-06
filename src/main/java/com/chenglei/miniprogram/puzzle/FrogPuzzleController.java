@@ -1,9 +1,13 @@
 package com.chenglei.miniprogram.puzzle;
 
-import com.chenglei.miniprogram.auth.DevSessionService;
+import com.chenglei.miniprogram.auth.CurrentUser;
+import com.chenglei.miniprogram.badge.BadgeService;
 import com.chenglei.miniprogram.common.api.ApiResponse;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
+import com.chenglei.miniprogram.common.storage.GameProgressStore;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -19,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,13 +36,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/games/frog-puzzle")
 public class FrogPuzzleController {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    static final String GAME_ID = "frog-puzzle";
+
+    private final ObjectMapper objectMapper = new ObjectMapper()
+        .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
+        .setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.NONE)
+        .setVisibility(PropertyAccessor.IS_GETTER, JsonAutoDetect.Visibility.NONE);
+    private final GameProgressStore store;
+    private final BadgeService badgeService;
     private final Map<String, Set<String>> userComponents = new ConcurrentHashMap<>();
-    private final Map<String, PuzzleProgress> userProgress = new ConcurrentHashMap<>();
-    private final Map<String, Boolean> idempotencyKeys = new ConcurrentHashMap<>();
     private Map<String, FrogComponentData> frogComponents;
 
-    public FrogPuzzleController() {
+    public FrogPuzzleController(GameProgressStore store, BadgeService badgeService) {
+        this.store = store;
+        this.badgeService = badgeService;
         loadComponents();
     }
 
@@ -120,6 +132,7 @@ public class FrogPuzzleController {
     }
 
     @PostMapping("/events")
+    @Transactional
     public ApiResponse<Map<String, Object>> handleEvent(
         Authentication authentication,
         @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
@@ -127,8 +140,8 @@ public class FrogPuzzleController {
     ) {
         String userId = getUser(authentication).id();
 
-        // 幂等性检查
-        if (idempotencyKey != null && idempotencyKeys.containsKey(idempotencyKey)) {
+        if (idempotencyKey != null && !idempotencyKey.isBlank()
+            && store.findEventPayload(userId, GAME_ID, idempotencyKey) != null) {
             return ApiResponse.success(Map.of(
                 "success", true,
                 "duplicated", true,
@@ -160,18 +173,20 @@ public class FrogPuzzleController {
             throw new BusinessException(ErrorCode.NOT_FOUND, "青蛙不存在");
         }
 
-        // 获取或创建用户进度
-        PuzzleProgress progress = userProgress.computeIfAbsent(userId, k -> new PuzzleProgress());
+        // 读取或初始化持久化进度（行锁保证同一用户并发事件串行化）
+        PuzzleProgress progress = loadProgress(userId);
 
         // 记录完成的青蛙
         if (!progress.completedFrogs.contains(frogId)) {
             progress.completedFrogs.add(frogId);
             progress.totalPoints += 10; // 每只青蛙10分
         }
+        saveProgress(userId, progress);
+        // 完成蛙数变化后同步徽章流水（剪纸新手/匠人/大师）。
+        badgeService.evaluate(userId);
 
-        // 标记幂等键
-        if (idempotencyKey != null) {
-            idempotencyKeys.put(idempotencyKey, true);
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            store.recordEvent(userId, GAME_ID, idempotencyKey, "frog_completed", payloadJson(frogId));
         }
 
         Map<String, Object> response = new HashMap<>();
@@ -189,7 +204,7 @@ public class FrogPuzzleController {
     @GetMapping("/progress")
     public ApiResponse<Map<String, Object>> getProgress(Authentication authentication) {
         String userId = getUser(authentication).id();
-        PuzzleProgress progress = userProgress.getOrDefault(userId, new PuzzleProgress());
+        PuzzleProgress progress = readProgress(userId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("userId", userId);
@@ -199,6 +214,43 @@ public class FrogPuzzleController {
         response.put("updatedAt", Instant.now());
 
         return ApiResponse.success(response);
+    }
+
+    private PuzzleProgress readProgress(String userId) {
+        String json = store.loadState(userId, GAME_ID);
+        return parseProgress(json);
+    }
+
+    private PuzzleProgress loadProgress(String userId) {
+        String json = store.loadStateForUpdate(userId, GAME_ID);
+        return parseProgress(json);
+    }
+
+    private PuzzleProgress parseProgress(String json) {
+        if (json == null || json.isBlank() || "{}".equals(json)) return new PuzzleProgress();
+        try {
+            return objectMapper.readValue(json, PuzzleProgress.class);
+        } catch (IOException e) {
+            throw new IllegalStateException("拼图进度反序列化失败", e);
+        }
+    }
+
+    private void saveProgress(String userId, PuzzleProgress progress) {
+        try {
+            store.saveState(userId, GAME_ID, objectMapper.writeValueAsString(progress),
+                frogComponents != null && !frogComponents.isEmpty()
+                    && progress.completedFrogs.size() >= frogComponents.size());
+        } catch (IOException e) {
+            throw new IllegalStateException("拼图进度序列化失败", e);
+        }
+    }
+
+    private String payloadJson(String frogId) {
+        try {
+            return objectMapper.writeValueAsString(Map.of("frogId", frogId));
+        } catch (IOException e) {
+            return "{}";
+        }
     }
 
     // 获取用户已解锁的组件（测试环境：所有组件默认解锁）
@@ -214,14 +266,14 @@ public class FrogPuzzleController {
         });
     }
 
-    private DevSessionService.User getUser(Authentication authentication) {
+    private CurrentUser getUser(Authentication authentication) {
         if (authentication == null || authentication.getPrincipal() == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
         }
-        return (DevSessionService.User) authentication.getPrincipal();
+        return (CurrentUser) authentication.getPrincipal();
     }
 
-    // 内部类
+    // 内部类：按字段与 game_progress 的 progress_json 互转
     static class PuzzleProgress {
         List<String> completedFrogs = new ArrayList<>();
         int totalPoints = 0;

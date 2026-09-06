@@ -1,20 +1,32 @@
 package com.chenglei.miniprogram.integration;
 
-import com.chenglei.miniprogram.auth.DevSessionService;
+import com.chenglei.miniprogram.auth.CurrentUser;
+import com.chenglei.miniprogram.auth.SessionService;
+import com.chenglei.miniprogram.badge.BadgeService;
+import com.chenglei.miniprogram.badge.UserBadgeMapper;
 import com.chenglei.miniprogram.common.api.ApiResponse;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
+import com.chenglei.miniprogram.common.storage.GameProgressStore;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.chenglei.miniprogram.guardian.GuardianGameService;
 import com.chenglei.miniprogram.quiz.ForestQuizGameService;
 import com.chenglei.miniprogram.story.StoryGameService;
+import com.chenglei.miniprogram.unlock.UnlockService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -30,21 +42,35 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1")
 public class IntegrationController {
 
-    private final DevSessionService sessions;
+    private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
+
+    private final SessionService sessions;
     private final StoryGameService storyGameService;
     private final GuardianGameService guardianGameService;
     private final ForestQuizGameService forestQuizGameService;
     private final ContentCatalogService content;
-    private final Map<String, Map<String, Integer>> progress = new ConcurrentHashMap<>();
-    private final Map<String, DevSessionService.User> profiles = new ConcurrentHashMap<>();
+    private final GameProgressStore store;
+    private final ObjectMapper objectMapper;
+    private final BadgeService badgeService;
+    private final RankingsMapper rankingsMapper;
+    private final UserBadgeMapper userBadges;
+    private final UnlockService unlockService;
 
-    public IntegrationController(DevSessionService sessions, StoryGameService storyGameService,
-        GuardianGameService guardianGameService, ForestQuizGameService forestQuizGameService, ContentCatalogService content) {
+    public IntegrationController(SessionService sessions, StoryGameService storyGameService,
+        GuardianGameService guardianGameService, ForestQuizGameService forestQuizGameService, ContentCatalogService content,
+        GameProgressStore store, ObjectMapper objectMapper, BadgeService badgeService,
+        RankingsMapper rankingsMapper, UserBadgeMapper userBadges, UnlockService unlockService) {
         this.sessions = sessions;
         this.storyGameService = storyGameService;
         this.guardianGameService = guardianGameService;
         this.forestQuizGameService = forestQuizGameService;
         this.content = content;
+        this.store = store;
+        this.objectMapper = objectMapper;
+        this.badgeService = badgeService;
+        this.rankingsMapper = rankingsMapper;
+        this.userBadges = userBadges;
+        this.unlockService = unlockService;
     }
 
     @GetMapping("/home/summary")
@@ -54,8 +80,20 @@ public class IntegrationController {
         response.put("games", content.games());
         response.put("frogs", guardianGameService.applyUnlockState(content.frogs(), userId));
         response.put("patterns", content.patterns());
-        response.put("activity", content.activities());
+        response.put("activity", activityFeed());
         return ApiResponse.success(response);
+    }
+
+    /** 蛙友动态：最近真实解锁流；还没有用户解锁时回退到种子引导文案。 */
+    private List<String> activityFeed() {
+        List<String> activity = new ArrayList<>();
+        for (Map<String, Object> row : userBadges.selectRecentUnlocks()) {
+            String nickname = String.valueOf(valueOf(row, "nickname"));
+            String badgeName = String.valueOf(valueOf(row, "badgeName"));
+            if (nickname.isBlank() || "null".equals(nickname)) nickname = "一位蛙友";
+            activity.add(nickname + " 刚刚解锁了「" + badgeName + "」徽章");
+        }
+        return activity.isEmpty() ? content.activities() : activity;
     }
 
     @GetMapping("/content/frogs")
@@ -77,8 +115,9 @@ public class IntegrationController {
 
     @GetMapping("/me/profile")
     public ApiResponse<Map<String, Object>> profile(Authentication authentication) {
-        DevSessionService.User user = user(authentication);
-        List<Map<String, Object>> badges = guardianGameService.applyBadgeState(content.badges(), user.id());
+        CurrentUser user = sessions.profileOf(user(authentication).id());
+        BadgeService.Evaluation evaluation = badgeService.evaluate(user.id());
+        List<Map<String, Object>> badges = evaluation.badges();
         int frogCount = guardianGameService.progress(user.id()).get("completed") instanceof Number count ? count.intValue() : 0;
         int badgeCount = (int) badges.stream().filter(badge -> Boolean.TRUE.equals(badge.get("unlocked"))).count();
         return ApiResponse.success(Map.of("user", user, "stats", Map.of("frogs", frogCount, "frogsTotal", 9, "patterns", 0,
@@ -87,14 +126,11 @@ public class IntegrationController {
     }
 
     @PatchMapping("/me/profile")
-    public ApiResponse<DevSessionService.User> updateProfile(Authentication authentication,
+    public ApiResponse<CurrentUser> updateProfile(Authentication authentication,
         @Valid @RequestBody ProfilePatch patch) {
-        DevSessionService.User current = user(authentication);
-        DevSessionService.User updated = new DevSessionService.User(current.id(),
-            patch.nickname() == null ? current.nickname() : patch.nickname(),
-            patch.avatarUrl() == null ? current.avatarUrl() : patch.avatarUrl(), false);
-        profiles.put(current.id(), updated);
-        return ApiResponse.success(updated);
+        String userId = user(authentication).id();
+        sessions.updateProfile(userId, patch.nickname(), patch.avatarUrl());
+        return ApiResponse.success(sessions.profileOf(userId));
     }
 
     @GetMapping("/games/{gameId}/progress")
@@ -103,7 +139,7 @@ public class IntegrationController {
         if (gameId.equals("story")) return ApiResponse.success(storyGameService.progress(authentication));
         if (gameId.equals("guardian")) return ApiResponse.success(guardianGameService.progress(user(authentication).id()));
         if (gameId.equals("forest-quiz")) return ApiResponse.success(forestQuizGameService.progress(user(authentication).id()));
-        int completed = progressFor(authentication, gameId).getOrDefault("completed", 0);
+        int completed = completedFromState(store.loadState(user(authentication).id(), gameId));
         return ApiResponse.success(Map.of("gameId", gameId, "completed", completed, "total", gameId.equals("story") ? 5 : 1,
             "finished", completed > 0, "version", 1, "updatedAt", Instant.now()));
     }
@@ -141,10 +177,13 @@ public class IntegrationController {
             }
             throw new BusinessException(ErrorCode.BAD_REQUEST, "知识闯关事件必须包含 levelId、questionId 和 optionId");
         }
-        Map<String, Integer> state = progressFor(authentication, gameId);
-        int completed = "completed".equals(event.type()) || "unlocked".equals(event.type())
-            ? 1 : state.getOrDefault("completed", 0);
-        state.put("completed", completed);
+        String userId = user(authentication).id();
+        String previous = store.loadStateForUpdate(userId, gameId);
+        int completed = completedFromState(previous);
+        if ("completed".equals(event.type()) || "unlocked".equals(event.type())) {
+            completed = 1;
+            store.saveState(userId, gameId, stateJson(Map.of("completed", completed)), true);
+        }
         return ApiResponse.success(Map.of("accepted", true, "duplicated", false, "gameId", gameId,
             "progress", Map.of("gameId", gameId, "completed", completed, "total", gameId.equals("story") ? 5 : 1,
                 "finished", completed > 0, "version", 1, "updatedAt", Instant.now())));
@@ -152,41 +191,107 @@ public class IntegrationController {
 
     @PostMapping("/unlocks/redeem")
     public ApiResponse<Map<String, Object>> redeem(Authentication authentication, @Valid @RequestBody UnlockRequest request) {
-        user(authentication);
-        return ApiResponse.success(Map.of("accepted", true, "code", request.code(), "characterId", "forest",
-            "characterName", "护林蛙", "message", "二维码核验成功", "redeemedAt", Instant.now()));
+        String userId = user(authentication).id();
+        return ApiResponse.success(unlockService.redeem(userId, request.code()));
     }
 
     @GetMapping("/rankings")
-    public ApiResponse<Map<String, Object>> rankings(@RequestParam(defaultValue = "total") String type) {
+    public ApiResponse<Map<String, Object>> rankings(Authentication authentication,
+        @RequestParam(defaultValue = "total") String type) {
         String normalizedType = type.equals("weekly") ? "weekly" : "total";
-        // HashMap/LinkedHashMap is intentional here: Map.of rejects the null myRank value.
+        LocalDate weekStart = LocalDate.now(ZONE).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        boolean weekly = normalizedType.equals("weekly");
+        List<Map<String, Object>> rows = weekly
+            ? rankingsMapper.selectWeeklyRanking(weekStart)
+            : rankingsMapper.selectTotalRanking();
+
+        List<Map<String, Object>> items = new ArrayList<>();
+        int rank = 1;
+        for (Map<String, Object> row : rows) {
+            Object scoreValue = valueOf(row, "score");
+            int score = scoreValue instanceof Number number
+                ? number.intValue()
+                : Integer.parseInt(String.valueOf(scoreValue));
+            items.add(Map.of(
+                "rank", rank++,
+                "userId", String.valueOf(valueOf(row, "userId")),
+                "nickname", String.valueOf(valueOf(row, "nickname")),
+                "score", score));
+        }
+
+        Integer myRank = null;
+        if (authentication != null && authentication.getPrincipal() instanceof CurrentUser current) {
+            int myCount = weekly
+                ? rankingsMapper.countUserWeeklyBadges(current.id(), weekStart)
+                : rankingsMapper.countUserBadges(current.id());
+            if (myCount > 0) {
+                myRank = weekly
+                    ? rankingsMapper.weeklyRankAbove(myCount, weekStart)
+                    : rankingsMapper.rankAbove(myCount);
+            }
+        }
+
+        // myRank 为 null 时由 jackson non_null 略去该字段，与契约一致。
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("type", normalizedType);
         response.put("updatedAt", Instant.now());
-        response.put("items", List.of());
-        response.put("myRank", null);
+        response.put("items", items);
+        response.put("myRank", myRank);
         response.put("page", 1);
-        response.put("size", 20);
-        response.put("total", 0);
+        response.put("size", 50);
+        response.put("total", items.size());
         return ApiResponse.success(response);
     }
 
     @GetMapping("/welfare/summary")
     public ApiResponse<Map<String, Object>> welfare() {
         Map<String, Object> response = new LinkedHashMap<>(content.welfare());
-        response.put("reports", List.of());
+        List<Map<String, Object>> reports = new ArrayList<>();
+        for (Map<String, Object> row : content.welfareReports()) {
+            Map<String, Object> item = new LinkedHashMap<>(row);
+            Object publishedAt = valueOf(row, "publishedAt");
+            item.put("date", publishedAt instanceof Date date
+                ? date.toInstant().atZone(ZONE).toLocalDate().toString()
+                : String.valueOf(publishedAt));
+            reports.add(item);
+        }
+        response.put("reports", reports);
         return ApiResponse.success(response);
     }
 
-    private DevSessionService.User user(Authentication authentication) {
-        DevSessionService.User user = authentication == null ? null : (DevSessionService.User) authentication.getPrincipal();
-        if (user == null) throw new IllegalStateException("未登录");
-        return profiles.getOrDefault(user.id(), user);
+    /** H2（DATABASE_TO_LOWER）会把列别名转小写，MySQL 保留大小写，因此按键大小写不敏感取值。 */
+    private static Object valueOf(Map<String, Object> values, String key) {
+        Object value = values.get(key);
+        if (value != null || values.containsKey(key)) return value;
+        return values.entrySet().stream()
+            .filter(entry -> entry.getKey().equalsIgnoreCase(key))
+            .map(Map.Entry::getValue)
+            .findFirst()
+            .orElse(null);
     }
 
-    private Map<String, Integer> progressFor(Authentication authentication, String gameId) {
-        return progress.computeIfAbsent(user(authentication).id() + ":" + gameId, key -> new ConcurrentHashMap<>());
+    private CurrentUser user(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CurrentUser user)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "未登录");
+        }
+        return user;
+    }
+
+    private int completedFromState(String stateJson) {
+        if (stateJson == null || stateJson.isBlank()) return 0;
+        try {
+            return objectMapper.readTree(stateJson).path("completed").asInt(0);
+        } catch (JsonProcessingException e) {
+            return 0;
+        }
+    }
+
+    private String stateJson(Map<String, Object> state) {
+        try {
+            return objectMapper.writeValueAsString(state);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("游戏状态序列化失败", e);
+        }
     }
 
     private static void ensureGame(String gameId) {

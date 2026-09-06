@@ -44,6 +44,51 @@ class MiniProgramBackendApplicationTests {
         jdbcTemplate.update("DELETE FROM guardian_round");
         jdbcTemplate.update("DELETE FROM guardian_collection");
         jdbcTemplate.update("DELETE FROM guardian_daily_state");
+        jdbcTemplate.update("DELETE FROM game_progress");
+        jdbcTemplate.update("DELETE FROM game_event");
+        jdbcTemplate.update("DELETE FROM user_badge");
+        jdbcTemplate.update("UPDATE unlock_code SET status='unused', redeemed_by=NULL, redeemed_at=NULL");
+        jdbcTemplate.update("DELETE FROM unlock_record");
+    }
+
+    @Test
+    void unlockCodesAreSingleUseAndValidated() throws Exception {
+        String token = loginToken("unlock-test-code");
+        String redeemBody = "{\"code\":\"PAPER-FROG-2026-0002\"}";
+
+        mockMvc.perform(post("/v1/unlocks/redeem")
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .content(redeemBody))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.characterId").value("hibernation"))
+            .andExpect(jsonPath("$.data.character.name").value("冬眠蛙"))
+            .andExpect(jsonPath("$.data.character.sections").isArray());
+
+        // 同一二维码只能使用一次。
+        mockMvc.perform(post("/v1/unlocks/redeem")
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .content(redeemBody))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("COMMON_409"));
+
+        // 码池外的二维码无效。
+        mockMvc.perform(post("/v1/unlocks/redeem")
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .content("{\"code\":\"NOT-A-REAL-CODE\"}"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("COMMON_404"));
+
+        org.junit.jupiter.api.Assertions.assertEquals(1, countUnlockRecords());
+        org.junit.jupiter.api.Assertions.assertEquals("redeemed", jdbcTemplate.queryForObject(
+            "SELECT status FROM unlock_code WHERE code = 'PAPER-FROG-2026-0002'", String.class));
+    }
+
+    private int countUnlockRecords() {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM unlock_record", Integer.class);
+        return count == null ? 0 : count;
     }
 
     @Test
@@ -109,7 +154,8 @@ class MiniProgramBackendApplicationTests {
 
         mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.user.id").value("local-user"))
+            // 开发登录（未配置 WECHAT_APPID/SECRET）映射到固定 app_user，H2 首个登录用户 id 为 1。
+            .andExpect(jsonPath("$.data.user.id").value("1"))
             .andExpect(jsonPath("$.data.stats.frogs").value(0));
 
         mockMvc.perform(get("/v1/welfare/summary").header("Authorization", "Bearer " + token))
@@ -119,10 +165,11 @@ class MiniProgramBackendApplicationTests {
         mockMvc.perform(post("/v1/unlocks/redeem")
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
-                .content("{\"code\":\"local-test-code\"}"))
+                .content("{\"code\":\"PAPER-FROG-2026-0001\"}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.accepted").value(true))
-            .andExpect(jsonPath("$.data.characterName").value("护林蛙"));
+            .andExpect(jsonPath("$.data.characterName").value("护林蛙"))
+            .andExpect(jsonPath("$.data.character.blessing").isNotEmpty());
 
         mockMvc.perform(get("/v1/rankings?type=total").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk())
@@ -139,6 +186,37 @@ class MiniProgramBackendApplicationTests {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.accepted").value(true))
             .andExpect(jsonPath("$.data.progress.finished").value(true));
+    }
+
+    @Test
+    void devLoginReusesSameAccountAndPersistsProfile() throws Exception {
+        String firstToken = loginToken("dev-login-001");
+        String secondToken = loginToken("dev-login-002");
+
+        mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer " + firstToken))
+            .andExpect(status().isOk());
+        MvcResult secondProfile = mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer " + secondToken))
+            .andExpect(status().isOk())
+            .andReturn();
+        String sharedUserId = objectMapper.readTree(secondProfile.getResponse().getContentAsString())
+            .path("data").path("user").path("id").asText();
+
+        mockMvc.perform(patch("/v1/me/profile")
+                .header("Authorization", "Bearer " + secondToken)
+                .contentType("application/json")
+                .content("{\"nickname\":\"持久化用户\"}"))
+            .andExpect(status().isOk());
+
+        // 同一开发账号再次登录后，昵称修改依然可读（落在 app_user 表而不是内存）。
+        mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer " + firstToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.user.id").value(sharedUserId))
+            .andExpect(jsonPath("$.data.user.nickname").value("持久化用户"));
+
+        // 未知 token 不能通过鉴权。
+        mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer not-a-real-token"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.code").value("AUTH_401"));
     }
 
     @Test
@@ -303,6 +381,168 @@ class MiniProgramBackendApplicationTests {
             .andExpect(jsonPath("$.data.stats.frogs").value(3))
             .andExpect(jsonPath("$.data.badges[3].id").value("guardian-messenger"))
             .andExpect(jsonPath("$.data.badges[3].unlocked").value(true));
+    }
+
+    @Test
+    void storyAndPuzzleProgressPersistToDatabase() throws Exception {
+        String token = loginToken("persistence-test-code");
+        resetStory(token);
+
+        mockMvc.perform(post("/v1/games/story/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "story-persist-001")
+                .contentType("application/json")
+                .content("{\"type\":\"story_choice\",\"payload\":{\"choiceId\":\"A\"}}"))
+            .andExpect(status().isOk());
+
+        // 剧情状态与幂等事件都写入 V1 预留的表，后端重启后进度不再丢失。
+        org.junit.jupiter.api.Assertions.assertEquals(1, countGameProgress("story"));
+        org.junit.jupiter.api.Assertions.assertEquals(1, countGameEvents("story", "story-persist-001"));
+
+        mockMvc.perform(post("/v1/games/story/events")
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .content("{\"type\":\"reset\"}"))
+            .andExpect(status().isOk());
+        org.junit.jupiter.api.Assertions.assertEquals(0, countGameProgress("story"));
+        org.junit.jupiter.api.Assertions.assertEquals(0, countGameEvents("story", "story-persist-001"));
+
+        mockMvc.perform(post("/v1/games/frog-puzzle/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "puzzle-persist-001")
+                .contentType("application/json")
+                .content("{\"type\":\"frog_completed\",\"payload\":{\"frogId\":\"forest\"}}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.totalPoints").value(10));
+
+        org.junit.jupiter.api.Assertions.assertEquals(1, countGameProgress("frog-puzzle"));
+        org.junit.jupiter.api.Assertions.assertEquals(1, countGameEvents("frog-puzzle", "puzzle-persist-001"));
+
+        // 同一幂等键重放只算一次，积分不重复累计。
+        mockMvc.perform(post("/v1/games/frog-puzzle/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "puzzle-persist-001")
+                .contentType("application/json")
+                .content("{\"type\":\"frog_completed\",\"payload\":{\"frogId\":\"forest\"}}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.duplicated").value(true));
+
+        mockMvc.perform(get("/v1/games/frog-puzzle/progress").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.completedFrogs.length()").value(1))
+            .andExpect(jsonPath("$.data.totalPoints").value(10));
+    }
+
+    @Test
+    void badgesUnlockAcrossGamesAndPersist() throws Exception {
+        String token = loginToken("badge-test-code");
+
+        // 拼图完成 1 只蛙 → 剪纸新手（青铜）
+        mockMvc.perform(post("/v1/games/frog-puzzle/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "badge-puzzle-001")
+                .contentType("application/json")
+                .content("{\"type\":\"frog_completed\",\"payload\":{\"frogId\":\"forest\"}}"))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.badges[0].id").value("paper-beginner"))
+            .andExpect(jsonPath("$.data.badges[0].unlocked").value(true))
+            .andExpect(jsonPath("$.data.stats.badges").value(1));
+
+        // 剧情完整走完 1 条路线 → 故事聆听者（青铜）。状态机分支较多，
+        // 测试里按服务端返回的选项逐场景选择，直到 completedRoutes >= 1。
+        resetStory(token);
+        int storyBadgesBefore = currentStatsBadges(token);
+        for (int i = 0; i < 60; i++) {
+            JsonNode state = storyState(token);
+            if (state.path("completedRoutes").size() >= 1 || state.path("finished").asBoolean(false)
+                || state.path("gameOver").asBoolean(false)) break;
+            JsonNode choices = state.path("choices");
+            if (!choices.isArray() || choices.isEmpty()) break;
+            String choiceId = choices.get(0).path("id").asText();
+            mockMvc.perform(post("/v1/games/story/events")
+                    .header("Authorization", "Bearer " + token)
+                    .header("Idempotency-Key", "badge-story-walk-" + i)
+                    .contentType("application/json")
+                    .content("{\"type\":\"story_choice\",\"payload\":{\"choiceId\":\"" + choiceId + "\"}}"))
+                .andExpect(status().isOk());
+        }
+
+        mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.badges[1].id").value("story-listener"))
+            .andExpect(jsonPath("$.data.badges[1].unlocked").value(true))
+            .andExpect(jsonPath("$.data.stats.badges").value(storyBadgesBefore + 1));
+
+        org.junit.jupiter.api.Assertions.assertEquals(storyBadgesBefore + 1, countUserBadges());
+    }
+
+    private JsonNode storyState(String token) throws Exception {
+        MvcResult result = mockMvc.perform(get("/v1/games/story/progress").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).path("data").path("state");
+    }
+
+    private int currentStatsBadges(String token) throws Exception {
+        MvcResult result = mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).path("data").path("stats").path("badges").asInt();
+    }
+
+    @Test
+    void rankingsWelfareAndActivityServeRealData() throws Exception {
+        String token = loginToken("rankings-test-code");
+
+        mockMvc.perform(post("/v1/games/frog-puzzle/events")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "rankings-puzzle-001")
+                .contentType("application/json")
+                .content("{\"type\":\"frog_completed\",\"payload\":{\"frogId\":\"forest\"}}"))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(get("/v1/rankings?type=total").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.items.length()").value(1))
+            .andExpect(jsonPath("$.data.items[0].rank").value(1))
+            .andExpect(jsonPath("$.data.items[0].score").value(1))
+            .andExpect(jsonPath("$.data.items[0].nickname").isNotEmpty())
+            .andExpect(jsonPath("$.data.myRank").value(1));
+
+        mockMvc.perform(get("/v1/rankings?type=weekly").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.items.length()").value(1))
+            .andExpect(jsonPath("$.data.myRank").value(1));
+
+        mockMvc.perform(get("/v1/welfare/summary").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.reports.length()").value(2))
+            .andExpect(jsonPath("$.data.reports[0].title").isNotEmpty())
+            .andExpect(jsonPath("$.data.reports[0].date").isNotEmpty());
+
+        mockMvc.perform(get("/v1/home/summary").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.activity[0]").value(org.hamcrest.Matchers.containsString("解锁了")));
+    }
+
+    private int countUserBadges() {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM user_badge", Integer.class);
+        return count == null ? 0 : count;
+    }
+
+    private int countGameProgress(String gameId) {
+        Integer count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM game_progress WHERE game_id = ?", Integer.class, gameId);
+        return count == null ? 0 : count;
+    }
+
+    private int countGameEvents(String gameId, String eventKey) {
+        Integer count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM game_event WHERE game_id = ? AND event_key = ?", Integer.class, gameId, eventKey);
+        return count == null ? 0 : count;
     }
 
     private String loginToken(String code) throws Exception {

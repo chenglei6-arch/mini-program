@@ -8,7 +8,8 @@ public enum ErrorCode {
     FORBIDDEN("AUTH_403", "无权执行该操作", HttpStatus.FORBIDDEN),
     NOT_FOUND("COMMON_404", "请求的资源不存在", HttpStatus.NOT_FOUND),
     CONFLICT("COMMON_409", "当前操作与资源状态冲突", HttpStatus.CONFLICT),
-    INTERNAL_ERROR("COMMON_500", "服务暂时不可用", HttpStatus.INTERNAL_SERVER_ERROR);
+    INTERNAL_ERROR("COMMON_500", "服务暂时不可用", HttpStatus.INTERNAL_SERVER_ERROR),
+    WECHAT_502("WECHAT_502", "微信接口调用失败", HttpStatus.BAD_GATEWAY);
 
     private final String code;
     private final String message;

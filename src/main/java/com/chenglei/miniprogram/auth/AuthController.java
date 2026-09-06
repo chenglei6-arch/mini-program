@@ -4,6 +4,7 @@ import com.chenglei.miniprogram.common.api.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,17 +14,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/v1/auth")
 public class AuthController {
 
-    private final DevSessionService sessions;
+    private final SessionService sessions;
+    private final long accessTokenTtlSeconds;
 
-    public AuthController(DevSessionService sessions) {
+    public AuthController(SessionService sessions,
+        @Value("${app.auth.access-token-ttl-seconds:7200}") long accessTokenTtlSeconds) {
         this.sessions = sessions;
+        this.accessTokenTtlSeconds = accessTokenTtlSeconds;
     }
 
     @PostMapping("/wechat-login")
     public ApiResponse<TokenData> login(@Valid @RequestBody LoginRequest request) {
-        DevSessionService.Session session = sessions.login(request.code(), request.nickname(), request.avatarUrl());
-        return ApiResponse.success(new TokenData(session.accessToken(), 7200, "refresh-" + session.accessToken(),
-            2592000, session.user()));
+        SessionService.Session session = sessions.login(request.code(), request.nickname(), request.avatarUrl());
+        return ApiResponse.success(new TokenData(session.accessToken(), accessTokenTtlSeconds, null, 0,
+            session.user()));
     }
 
     public record LoginRequest(
@@ -33,5 +37,5 @@ public class AuthController {
     ) { }
 
     public record TokenData(String accessToken, long expiresIn, String refreshToken, long refreshExpiresIn,
-                            DevSessionService.User user) { }
+                            CurrentUser user) { }
 }
