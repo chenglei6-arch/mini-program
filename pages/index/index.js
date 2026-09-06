@@ -10,6 +10,12 @@ Component({
     detailVisible: false,
     detailLoading: false,
     frogDetail: null,
+    // 吉林文旅宣传轮播（G331 沿线 / 长白山），正式图片素材到位后替换为图文数据
+    tourSlides: [
+      { theme: 'mountain', title: '长白山天池', copy: '火山湖映雪，林海听涛，走进满族发源地的四季' },
+      { theme: 'river', title: 'G331 边境风光道', copy: '沿江而行，串起林蛙谷、湿地与边城村落' },
+      { theme: 'forest', title: '林蛙谷秘境', copy: '哈什蚂的故乡，说部传唱千年的山林剧场' },
+    ],
   },
   lifetimes: {
     attached() {

@@ -9,6 +9,9 @@ Component({
     routeIds: ['A', 'B', 'C'],
     progress: null,
     state: null,
+    // 打字机效果：逐段显示场景正文，轻触正文可跳过
+    revealed: 0,
+    typing: false,
   },
 
   lifetimes: {
@@ -17,6 +20,9 @@ Component({
         this.setData({ loading: false })
         wx.showToast({ title: error && error.code === 401 ? '登录失败，请稍后重试' : '故事进度加载失败', icon: 'none' })
       })
+    },
+    detached() {
+      this.clearTypewriter()
     },
   },
 
@@ -29,7 +35,40 @@ Component({
     },
 
     setStory(progress) {
-      this.setData({ progress, state: progress && progress.state ? progress.state : null })
+      this.clearTypewriter()
+      const state = progress && progress.state ? progress.state : null
+      const total = state && Array.isArray(state.sceneParagraphs) ? state.sceneParagraphs.length : 0
+      if (!total) {
+        this.setData({ progress, state, revealed: 0, typing: false })
+        return
+      }
+      this.setData({ progress, state, revealed: 1, typing: total > 1 })
+      if (total > 1) {
+        this._typeTimer = setInterval(() => {
+          const next = this.data.revealed + 1
+          if (next >= total) {
+            this.clearTypewriter()
+            this.setData({ revealed: total, typing: false })
+          } else {
+            this.setData({ revealed: next })
+          }
+        }, 450)
+      }
+    },
+
+    clearTypewriter() {
+      if (this._typeTimer) {
+        clearInterval(this._typeTimer)
+        this._typeTimer = null
+      }
+    },
+
+    revealAll() {
+      if (!this.data.typing) return
+      this.clearTypewriter()
+      const total = this.data.state && Array.isArray(this.data.state.sceneParagraphs)
+        ? this.data.state.sceneParagraphs.length : 0
+      this.setData({ revealed: total, typing: false })
     },
 
     choose(event) {

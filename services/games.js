@@ -1,4 +1,5 @@
 const request = require('../utils/request')
+const { resolveAssetUrl } = require('../utils/assets')
 
 function getGameProgress(gameId) {
   return request.request({ url: `/v1/games/${gameId}/progress` })
@@ -11,9 +12,11 @@ function submitGameEvent(gameId, event, idempotencyKey) {
 }
 
 function unlockByCode(code) {
-  return request.request({ url: '/v1/unlocks/redeem', method: 'POST', data: { code } }).then(() => ({
-    status: 'DEVELOPMENT',
-    message: '扫码解锁功能开发中',
+  return request.request({ url: '/v1/unlocks/redeem', method: 'POST', data: { code } }).then((result) => ({
+    ...result,
+    character: result.character && typeof result.character === 'object'
+      ? { ...result.character, assetUrl: resolveAssetUrl(result.character.assetUrl) }
+      : null,
   }))
 }
 

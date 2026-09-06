@@ -2,6 +2,7 @@ const auth = require('../../../utils/auth')
 const gameService = require('../../../services/games')
 const contentService = require('../../../services/content')
 const { resolveAssetUrl } = require('../../../utils/assets')
+const sound = require('../../../utils/sound')
 
 Component({
   data: {
@@ -85,6 +86,7 @@ Component({
           nextZIndex: 1,
           completed: false
         })
+        this._startedAt = Date.now()
 
         wx.hideLoading()
       } catch (error) {
@@ -137,6 +139,7 @@ Component({
         frogComponents: updatedFrogComponents,
         nextZIndex: this.data.nextZIndex + 1
       })
+      sound.play('click')
 
       // 检查是否完成
       if (updatedComponents.length === this.data.totalComponents) {
@@ -175,6 +178,7 @@ Component({
     async onPuzzleComplete() {
       this.setData({ completed: true })
 
+      sound.play('success')
       wx.vibrateShort({ type: 'heavy' })
       wx.showToast({ title: '拼图完成！', icon: 'success', duration: 2000 })
 
@@ -188,6 +192,36 @@ Component({
       this.submitCompletion()
     },
 
+    // 保存完成的剪纸作品到相册
+    saveArtwork() {
+      const imageUrl = this.data.completedFrogImage
+      if (!imageUrl) {
+        wx.showToast({ title: '作品未就绪', icon: 'none' })
+        return
+      }
+      wx.downloadFile({
+        url: resolveAssetUrl(imageUrl),
+        success: (download) => {
+          wx.saveImageToPhotosAlbum({
+            filePath: download.tempFilePath,
+            success: () => wx.showToast({ title: '已保存到相册', icon: 'success' }),
+            fail: (error) => {
+              if (error.errMsg && error.errMsg.indexOf('auth') >= 0) {
+                wx.showModal({
+                  title: '需要相册权限',
+                  content: '请在设置中允许保存图片到相册',
+                  success: (res) => { if (res.confirm) wx.openSetting() }
+                })
+                return
+              }
+              wx.showToast({ title: '保存失败', icon: 'none' })
+            }
+          })
+        },
+        fail: () => wx.showToast({ title: '作品下载失败', icon: 'none' }),
+      })
+    },
+
     // 关闭完成提示，保留已拼好的画布
     onCloseComplete() {
       this.setData({ completed: false })
@@ -196,7 +230,7 @@ Component({
     async submitCompletion() {
       try {
         const payload = {
-          timeCost: 0, // TODO: 添加计时
+          timeCost: this._startedAt ? Math.round((Date.now() - this._startedAt) / 1000) : 0,
           components: this.data.placedComponents.map(c => c.id)
         }
 

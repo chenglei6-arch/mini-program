@@ -67,6 +67,21 @@
       <button class="primary-button" bindtap="scanUnlock">扫码解锁</button>
       <button class="ghost-button" bindtap="openWelfare">公益与徽章</button>
     </view>
+
+    <view class="section">
+      <view class="section-title">
+        <text class="section-title__main">吉林文旅</text>
+        <text class="section-title__sub">G331 · 长白山</text>
+      </view>
+      <swiper class="tour-swiper" autoplay circular interval="4000" indicator-dots indicator-color="rgba(255,255,255,0.4)" indicator-active-color="#ffffff">
+        <swiper-item wx:for="{{tourSlides}}" wx:key="title">
+          <view class="tour-slide tour-slide--{{item.theme}}">
+            <view class="tour-slide__title">{{item.title}}</view>
+            <view class="tour-slide__copy">{{item.copy}}</view>
+          </view>
+        </swiper-item>
+      </swiper>
+    </view>
   </block>
 </scroll-view>
 

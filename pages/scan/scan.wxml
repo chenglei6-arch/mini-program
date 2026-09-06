@@ -2,7 +2,7 @@
 <view class="page scan-page">
   <view class="scan-intro surface">
     <view class="scan-intro__title">解锁角色故事</view>
-    <view class="scan-intro__copy">扫描盲盒内的唯一二维码，获取角色故事、音频和进阶游戏。</view>
+    <view class="scan-intro__copy">扫描盲盒内的唯一二维码，获取角色完整故事与专属内容。</view>
   </view>
   <view class="scan-frame">
     <view class="scan-frame__corner scan-frame__corner--tl"></view>
@@ -12,8 +12,26 @@
     <view class="scan-frame__line"></view>
   </view>
   <button class="primary-button" loading="{{loading}}" bindtap="startScan">扫描二维码</button>
+  <view class="scan-manual surface">
+    <input class="scan-manual__input" placeholder="没有实体码？输入解锁码" value="{{code}}" bindinput="inputCode" />
+    <button class="ghost-button scan-manual__button" loading="{{loading}}" bindtap="redeemManual">解锁</button>
+  </view>
+  <view wx:if="{{error}}" class="scan-error surface">{{error}}</view>
   <view wx:if="{{result}}" class="scan-result surface">
     <view class="scan-result__title">{{result.message}}</view>
-    <view wx:if="{{result.characterName}}" class="scan-result__copy">角色：{{result.characterName}}</view>
+    <block wx:if="{{result.character}}">
+      <view class="scan-character">
+        <image wx:if="{{result.character.assetUrl}}" class="scan-character__img" src="{{result.character.assetUrl}}" mode="aspectFit"></image>
+        <view class="scan-character__meta">
+          <view class="scan-character__name">{{result.character.name}}</view>
+          <view class="scan-character__pattern">守护纹样 · {{result.character.pattern}}</view>
+          <view class="scan-character__blessing">{{result.character.blessing}}</view>
+        </view>
+      </view>
+      <view wx:for="{{result.character.sections}}" wx:key="heading" class="scan-section">
+        <view class="scan-section__heading">{{item.heading}}</view>
+        <view wx:for="{{item.paragraphs}}" wx:for-item="paragraph" wx:key="*this" class="scan-section__text">{{paragraph}}</view>
+      </view>
+    </block>
   </view>
 </view>

@@ -14,14 +14,17 @@
     <view class="narrative surface">
       <view class="narrative__eyebrow">{{state.speaker}} · {{state.sceneId}}</view>
       <view class="narrative__title">{{state.sceneTitle}}</view>
-      <view class="narrative__body">
+      <view class="narrative__body" bindtap="revealAll">
         <block wx:if="{{state.sceneParagraphs && state.sceneParagraphs.length}}">
-          <view wx:for="{{state.sceneParagraphs}}" wx:key="*this" class="narrative__paragraph">{{item}}</view>
+          <block wx:for="{{state.sceneParagraphs}}" wx:key="*this">
+            <view wx:if="{{index < revealed}}" class="narrative__paragraph">{{item}}</view>
+          </block>
         </block>
         <text wx:else>{{state.sceneText}}</text>
+        <view wx:if="{{typing}}" class="narrative__skip">轻触正文跳过</view>
       </view>
 
-      <view wx:if="{{state.choices.length}}" class="choices">
+      <view wx:if="{{state.choices.length && !typing}}" class="choices">
         <button wx:for="{{state.choices}}" wx:key="id" class="ghost-button choice" loading="{{submitting}}" disabled="{{submitting}}" data-choice-id="{{item.id}}" bindtap="choose">
           <view class="choice__label">{{item.label}}</view>
           <view wx:if="{{item.hint}}" class="choice__hint">{{item.hint}}</view>

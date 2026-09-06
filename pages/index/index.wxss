@@ -54,3 +54,27 @@
 .frog-detail__section { padding-top: 20rpx; border-top: 1rpx solid #eee9df; }
 .frog-detail__heading { color: #1f5c46; font-size: 29rpx; font-weight: 700; }
 .frog-detail__paragraph { margin-top: 12rpx; color: #5e6a62; font-size: 25rpx; line-height: 1.75; }
+
+/* 吉林文旅轮播 */
+.tour-swiper {
+  height: 260rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.tour-slide {
+  height: 100%;
+  padding: 40rpx 44rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: #fff;
+}
+
+.tour-slide--mountain { background: linear-gradient(135deg, #33566b 0%, #6f95a8 55%, #cfd9dd 100%); }
+.tour-slide--river    { background: linear-gradient(135deg, #2f5d52 0%, #67988a 60%, #d8e2d4 100%); }
+.tour-slide--forest   { background: linear-gradient(135deg, #4a4232 0%, #8a7a55 60%, #ded3b8 100%); }
+
+.tour-slide__title { font-size: 36rpx; font-weight: 700; letter-spacing: 2rpx; }
+.tour-slide__copy { margin-top: 14rpx; font-size: 24rpx; opacity: 0.92; line-height: 1.6; }

@@ -266,6 +266,42 @@
   color: #F7F4EC;
 }
 
+/* 金色纸屑庆祝动画 */
+.confetti {
+  position: absolute;
+  top: -20rpx;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti__piece {
+  position: absolute;
+  top: -40rpx;
+  width: 14rpx;
+  height: 22rpx;
+  border-radius: 4rpx;
+  opacity: 0;
+  animation: confetti-fall 1.6s ease-in forwards;
+}
+
+.confetti__piece--1 { left: 8%;  background: #D4A04A; animation-delay: 0s;    transform: rotate(20deg); }
+.confetti__piece--2 { left: 20%; background: #C25B4E; animation-delay: 0.15s; transform: rotate(-35deg); }
+.confetti__piece--3 { left: 32%; background: #7A9E7E; animation-delay: 0.3s;  transform: rotate(60deg); }
+.confetti__piece--4 { left: 45%; background: #D4A04A; animation-delay: 0.1s;  transform: rotate(-10deg); }
+.confetti__piece--5 { left: 58%; background: #C25B4E; animation-delay: 0.4s;  transform: rotate(45deg); }
+.confetti__piece--6 { left: 70%; background: #7A9E7E; animation-delay: 0.05s; transform: rotate(-50deg); }
+.confetti__piece--7 { left: 82%; background: #D4A04A; animation-delay: 0.25s; transform: rotate(30deg); }
+.confetti__piece--8 { left: 92%; background: #C25B4E; animation-delay: 0.5s;  transform: rotate(-25deg); }
+
+@keyframes confetti-fall {
+  0%   { opacity: 0; transform: translateY(0) rotate(0deg); }
+  10%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(520rpx) rotate(320deg); }
+}
+
 /* 文化解读弹窗，采用角色墙同款单一滚动详情布局 */
 .culture-modal {
   position: fixed;

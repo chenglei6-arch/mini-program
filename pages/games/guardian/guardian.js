@@ -51,10 +51,48 @@ Component({
   lifetimes: {
     attached() {
       this.loadProgress()
+      this.startShakeListener()
+    },
+    detached() {
+      this.stopShakeListener()
+    },
+  },
+
+  pageLifetimes: {
+    show() {
+      this.startShakeListener()
+    },
+    hide() {
+      this.stopShakeListener()
     },
   },
 
   methods: {
+    // 真机"摇一摇"：监听加速度计，剧烈摇动触发与按钮相同的抽取流程。
+    startShakeListener() {
+      if (this._shakeListening) return
+      this._shakeListening = true
+      this._lastShakeAt = 0
+      this._handleAcceleration = (res) => this.handleAcceleration(res)
+      wx.startAccelerometer({ interval: 'ui', fail: () => {} })
+      wx.onAccelerometerChange(this._handleAcceleration)
+    },
+    stopShakeListener() {
+      if (!this._shakeListening) return
+      this._shakeListening = false
+      wx.offAccelerometerChange(this._handleAcceleration)
+      wx.stopAccelerometer({ fail: () => {} })
+    },
+    handleAcceleration(res) {
+      const force = Math.abs(res.x) + Math.abs(res.y) + Math.abs(res.z)
+      // 静止时三轴合力约 1g，剧烈摇动会显著超过阈值
+      if (force < 2.2) return
+      const now = Date.now()
+      if (now - (this._lastShakeAt || 0) < 1500) return
+      this._lastShakeAt = now
+      this.onShake()
+    },
+
     // 加载游戏进度
     async loadProgress() {
       try {
@@ -331,8 +369,7 @@ Component({
 
     return {
       title: '林蛙守护神 - 摇一摇解锁守护神',
-      path: '/pages/games/guardian/guardian',
-      imageUrl: '/assets/share-guardian.png'
+      path: '/pages/games/guardian/guardian'
     }
   },
 
@@ -341,8 +378,7 @@ Component({
     this.claimShareBonus()
 
     return {
-      title: '林蛙守护神 - 摇一摇解锁守护神',
-      imageUrl: '/assets/share-guardian.png'
+      title: '林蛙守护神 - 摇一摇解锁守护神'
     }
   },
 })

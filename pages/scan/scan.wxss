@@ -9,6 +9,18 @@
 .scan-frame__corner--bl { bottom: 36rpx; left: 36rpx; border-width: 0 0 4rpx 4rpx; }
 .scan-frame__corner--br { right: 36rpx; bottom: 36rpx; border-width: 0 4rpx 4rpx 0; }
 .scan-frame__line { position: absolute; top: 50%; right: 60rpx; left: 60rpx; height: 2rpx; background: #d4a04a; }
+.scan-manual { display: flex; align-items: center; gap: 16rpx; margin-top: 24rpx; padding: 20rpx 24rpx; }
+.scan-manual__input { flex: 1; font-size: 26rpx; }
+.scan-manual__button { flex-shrink: 0; }
+.scan-error { margin-top: 24rpx; padding: 24rpx; color: #a94438; font-size: 26rpx; }
 .scan-result { margin-top: 24rpx; padding: 28rpx; }
 .scan-result__title { color: #1f5c46; font-size: 30rpx; font-weight: 700; }
 .scan-result__copy { margin-top: 8rpx; color: #6f7a72; }
+.scan-character { display: flex; gap: 24rpx; margin-top: 24rpx; }
+.scan-character__img { width: 200rpx; height: 200rpx; flex-shrink: 0; }
+.scan-character__name { font-size: 32rpx; font-weight: 700; color: #24342d; }
+.scan-character__pattern { margin-top: 8rpx; color: #b07b2a; font-size: 24rpx; }
+.scan-character__blessing { margin-top: 12rpx; color: #6f7a72; font-size: 24rpx; line-height: 1.6; }
+.scan-section { margin-top: 28rpx; }
+.scan-section__heading { color: #24342d; font-size: 27rpx; font-weight: 700; }
+.scan-section__text { margin-top: 10rpx; color: #4c5a52; font-size: 25rpx; line-height: 1.8; text-align: justify; }

@@ -55,11 +55,22 @@
   <!-- 完成提示 -->
   <view class="complete-overlay" wx:if="{{completed}}" bindtap="onCloseComplete">
     <view class="complete-card" catchtap="stopPropagation">
+      <view class="confetti" aria-hidden="true">
+        <view class="confetti__piece confetti__piece--1"></view>
+        <view class="confetti__piece confetti__piece--2"></view>
+        <view class="confetti__piece confetti__piece--3"></view>
+        <view class="confetti__piece confetti__piece--4"></view>
+        <view class="confetti__piece confetti__piece--5"></view>
+        <view class="confetti__piece confetti__piece--6"></view>
+        <view class="confetti__piece confetti__piece--7"></view>
+        <view class="confetti__piece confetti__piece--8"></view>
+      </view>
       <view class="complete-close" aria-label="关闭" bindtap="onCloseComplete">×</view>
       <text class="complete-title">拼图完成！</text>
       <image class="complete-frog" src="{{completedFrogImage}}" mode="aspectFit" />
       <text class="complete-subtitle">{{selectedFrogName}}</text>
       <button class="action-btn primary" bindtap="onViewCulture">查看文化解读</button>
+      <button class="action-btn" bindtap="saveArtwork">保存剪纸作品</button>
       <button class="action-btn" bindtap="onSelectAnother">拼其他青蛙</button>
     </view>
   </view>
