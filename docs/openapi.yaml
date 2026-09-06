@@ -280,11 +280,11 @@ components:
     IdempotencyKey:
       name: Idempotency-Key
       in: header
-      required: true
-      description: 每次业务操作生成的新键；重试同一操作时复用原键。
+      required: false
+      description: 每次业务操作生成的新键；重试同一操作时复用原键。服务端不强制要求，
+        但缺失时无法做重放去重，客户端应始终携带。
       schema:
         type: string
-        minLength: 16
         maxLength: 64
   responses:
     BadRequest:
