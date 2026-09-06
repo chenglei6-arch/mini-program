@@ -1,5 +1,6 @@
 package com.chenglei.miniprogram.common.storage;
 
+import com.chenglei.miniprogram.common.db.RowValues;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
 import java.util.Map;
@@ -20,7 +21,16 @@ public class DbGameProgressStore implements GameProgressStore {
     @Override
     public String loadState(String userId, String gameId) {
         Map<String, Object> row = mapper.selectProgress(userId(gameId, userId), gameId);
-        return row == null ? null : (String) valueOf(row, "progressJson");
+        return row == null ? null : (String) RowValues.valueOf(row, "progressJson");
+    }
+
+    @Override
+    public boolean isCompleted(String userId, String gameId) {
+        Map<String, Object> row = mapper.selectProgress(userId(gameId, userId), gameId);
+        if (row == null) return false;
+        Object completed = RowValues.valueOf(row, "completed");
+        return completed instanceof Number number ? number.intValue() == 1
+            : Boolean.parseBoolean(String.valueOf(completed));
     }
 
     @Override
@@ -36,7 +46,7 @@ public class DbGameProgressStore implements GameProgressStore {
             }
             row = mapper.selectProgressForUpdate(id, gameId);
         }
-        return row == null ? null : (String) valueOf(row, "progressJson");
+        return row == null ? null : (String) RowValues.valueOf(row, "progressJson");
     }
 
     @Override
@@ -63,7 +73,7 @@ public class DbGameProgressStore implements GameProgressStore {
     @Override
     public String findEventPayload(String userId, String gameId, String eventKey) {
         Map<String, Object> row = mapper.selectEvent(userId(gameId, userId), gameId, eventKey);
-        return row == null ? null : (String) valueOf(row, "payloadJson");
+        return row == null ? null : (String) RowValues.valueOf(row, "payloadJson");
     }
 
     @Override
@@ -83,16 +93,5 @@ public class DbGameProgressStore implements GameProgressStore {
         } catch (NumberFormatException e) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "游戏进度不存在（用户未初始化）：" + gameId);
         }
-    }
-
-    /** H2（DATABASE_TO_LOWER）会把列别名转小写，MySQL 保留大小写，因此按键大小写不敏感取值。 */
-    private static Object valueOf(Map<String, Object> values, String key) {
-        Object value = values.get(key);
-        if (value != null || values.containsKey(key)) return value;
-        return values.entrySet().stream()
-            .filter(entry -> entry.getKey().equalsIgnoreCase(key))
-            .map(Map.Entry::getValue)
-            .findFirst()
-            .orElse(null);
     }
 }

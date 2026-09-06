@@ -6,8 +6,6 @@ import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
 import com.chenglei.miniprogram.common.storage.GameProgressStore;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,8 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
  * 《哈什玛灵纹之书》的服务端状态机。
  *
  * 文字内容和选择规则由服务端决定，客户端只提交 choiceId，避免把结局条件
- * 和数值判定暴露成可被客户端直接篡改的逻辑。完整状态序列化后落在
- * game_progress 表（无数据库联调时退化为内存），事件幂等走 game_event。
+ * 和数值判定暴露成可被客户端直接篡改的逻辑。完整状态经 {@link StoryStateJson}
+ * 序列化后落在 game_progress 表，事件幂等走 game_event。
  */
 @Service
 public class StoryGameService {
@@ -37,20 +35,17 @@ public class StoryGameService {
         "C", "天池冰渊 · 《冰雪传说卷》"
     );
 
-    /** 只按字段序列化：StoryState 没有公开 getter，读写都必须包含全部状态字段。 */
-    private static final ObjectMapper STATE_JSON = new ObjectMapper()
-        .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
-        .setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.NONE)
-        .setVisibility(PropertyAccessor.IS_GETTER, JsonAutoDetect.Visibility.NONE);
-
     private final GameProgressStore store;
     private final StoryContentCatalog content;
     private final BadgeService badgeService;
+    private final StoryStateJson stateJson;
 
-    public StoryGameService(GameProgressStore store, StoryContentCatalog content, BadgeService badgeService) {
+    public StoryGameService(GameProgressStore store, StoryContentCatalog content, BadgeService badgeService,
+        StoryStateJson stateJson) {
         this.store = store;
         this.content = content;
         this.badgeService = badgeService;
+        this.stateJson = stateJson;
     }
 
     public Map<String, Object> progress(Authentication authentication) {
@@ -72,7 +67,7 @@ public class StoryGameService {
         }
         boolean dedupe = idempotencyKey != null && !idempotencyKey.isBlank();
         if (dedupe) {
-            String previousChoice = choiceOf(store.findEventPayload(userId, GAME_ID, idempotencyKey));
+            String previousChoice = stateJson.choiceOf(store.findEventPayload(userId, GAME_ID, idempotencyKey));
             if (previousChoice != null) {
                 if (!previousChoice.equals(choiceId)) {
                     throw new BusinessException(ErrorCode.CONFLICT, "幂等键已经用于其他故事选择");
@@ -83,9 +78,9 @@ public class StoryGameService {
 
         StoryState state = lockedState(userId);
         applyChoice(state, choiceId);
-        store.saveState(userId, GAME_ID, writeState(state), state.finished);
+        store.saveState(userId, GAME_ID, stateJson.write(state), state.finished);
         if (dedupe) {
-            store.recordEvent(userId, GAME_ID, idempotencyKey, "story_choice", choicePayload(choiceId));
+            store.recordEvent(userId, GAME_ID, idempotencyKey, "story_choice", stateJson.choicePayload(choiceId));
         }
         // 每次选择后同步徽章流水（故事聆听者/说部传承人在路线完成时解锁）。
         badgeService.evaluate(userId);
@@ -94,45 +89,12 @@ public class StoryGameService {
 
     private StoryState state(String userId) {
         String json = store.loadState(userId, GAME_ID);
-        return json == null ? new StoryState() : readState(json);
+        return json == null ? new StoryState() : stateJson.read(json);
     }
 
     private StoryState lockedState(String userId) {
         String json = store.loadStateForUpdate(userId, GAME_ID);
-        return json == null ? new StoryState() : readState(json);
-    }
-
-    private String writeState(StoryState state) {
-        try {
-            return STATE_JSON.writeValueAsString(state);
-        } catch (Exception e) {
-            throw new IllegalStateException("故事状态序列化失败", e);
-        }
-    }
-
-    private StoryState readState(String json) {
-        try {
-            return STATE_JSON.readValue(json, StoryState.class);
-        } catch (Exception e) {
-            throw new IllegalStateException("故事状态反序列化失败", e);
-        }
-    }
-
-    private String choicePayload(String choiceId) {
-        try {
-            return STATE_JSON.writeValueAsString(Map.of("choiceId", choiceId));
-        } catch (Exception e) {
-            throw new IllegalStateException("故事事件序列化失败", e);
-        }
-    }
-
-    private String choiceOf(String payloadJson) {
-        if (payloadJson == null || payloadJson.isBlank()) return null;
-        try {
-            return STATE_JSON.readTree(payloadJson).path("choiceId").asText(null);
-        } catch (Exception e) {
-            return null;
-        }
+        return json == null ? new StoryState() : stateJson.read(json);
     }
 
     private void applyChoice(StoryState state, String choiceId) {
@@ -674,6 +636,11 @@ public class StoryGameService {
     }
 
     // 包可见 + 无 final 字段：Jackson 按字段序列化/反序列化，实例从无参构造创建。
+    // 可见性由注解声明，任何 ObjectMapper（含 Spring 全局实例）都能正确读写。
+    @JsonAutoDetect(creatorVisibility = JsonAutoDetect.Visibility.ANY,
+        fieldVisibility = JsonAutoDetect.Visibility.ANY,
+        getterVisibility = JsonAutoDetect.Visibility.NONE,
+        isGetterVisibility = JsonAutoDetect.Visibility.NONE)
     static final class StoryState {
         private String sceneId = "intro";
         private String sceneTitle = "开场 · 萨满古洞";

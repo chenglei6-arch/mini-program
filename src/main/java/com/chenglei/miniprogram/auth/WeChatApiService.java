@@ -26,18 +26,22 @@ public class WeChatApiService {
     private static final Set<String> INVALID_CODE_ERRCODES = Set.of("40029", "40163", "40226");
 
     private final RestClient restClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
     private final String appid;
     private final String secret;
 
-    public WeChatApiService(@Value("${app.wechat.appid:}") String appid,
+    public WeChatApiService(RestClient.Builder restClientBuilder, ObjectMapper objectMapper,
+        @Value("${app.wechat.appid:}") String appid,
         @Value("${app.wechat.secret:}") String secret) {
-        this.appid = appid == null ? "" : appid.trim();
-        this.secret = secret == null ? "" : secret.trim();
+        // RestClient.Builder 由 Spring Boot 自动配置并应用全局定制器；
+        // 这里只叠加微信接口专用的超时参数。
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(5));
         requestFactory.setReadTimeout(Duration.ofSeconds(10));
-        this.restClient = RestClient.builder().requestFactory(requestFactory).build();
+        this.restClient = restClientBuilder.requestFactory(requestFactory).build();
+        this.objectMapper = objectMapper;
+        this.appid = appid == null ? "" : appid.trim();
+        this.secret = secret == null ? "" : secret.trim();
         if (!isConfigured()) {
             log.warn("未配置 WECHAT_APPID/WECHAT_SECRET，登录将使用固定开发账号（仅供本地联调，切勿用于生产）");
         }

@@ -1,5 +1,6 @@
 package com.chenglei.miniprogram.auth;
 
+import com.chenglei.miniprogram.common.db.RowValues;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
 import java.nio.charset.StandardCharsets;
@@ -65,17 +66,17 @@ public class DbSessionService implements SessionService {
         if (token == null || token.isBlank()) return null;
         Map<String, Object> row = users.selectSessionUser(sha256Hex(token.trim()));
         if (row == null) return null;
-        long userId = number(valueOf(row, "userId"));
-        return new CurrentUser(String.valueOf(userId), (String) valueOf(row, "nickname"),
-            (String) valueOf(row, "avatarUrl"), false);
+        return new CurrentUser(String.valueOf(RowValues.number(row, "userId")),
+            (String) RowValues.valueOf(row, "nickname"),
+            (String) RowValues.valueOf(row, "avatarUrl"), false);
     }
 
     @Override
     public CurrentUser profileOf(String userId) {
         Map<String, Object> row = users.selectById(parseUserId(userId));
         if (row == null) throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
-        return new CurrentUser(String.valueOf(number(valueOf(row, "id"))),
-            (String) valueOf(row, "nickname"), (String) valueOf(row, "avatarUrl"), false);
+        return new CurrentUser(String.valueOf(RowValues.number(row, "id")),
+            (String) RowValues.valueOf(row, "nickname"), (String) RowValues.valueOf(row, "avatarUrl"), false);
     }
 
     @Override
@@ -103,7 +104,7 @@ public class DbSessionService implements SessionService {
         } else if (unionid != null) {
             users.updateUnionid(openid, unionid);
         }
-        long userId = number(valueOf(existing, "id"));
+        long userId = RowValues.number(existing, "id");
         if ((nickname != null && !nickname.isBlank()) || avatarUrl != null) {
             users.updateProfile(userId, nickname == null || nickname.isBlank() ? null : nickname, avatarUrl);
         }
@@ -116,21 +117,6 @@ public class DbSessionService implements SessionService {
         } catch (NumberFormatException e) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
         }
-    }
-
-    /** H2（DATABASE_TO_LOWER）会把列别名转小写，MySQL 保留大小写，因此按键大小写不敏感取值。 */
-    private static Object valueOf(Map<String, Object> values, String key) {
-        Object value = values.get(key);
-        if (value != null || values.containsKey(key)) return value;
-        return values.entrySet().stream()
-            .filter(entry -> entry.getKey().equalsIgnoreCase(key))
-            .map(Map.Entry::getValue)
-            .findFirst()
-            .orElse(null);
-    }
-
-    private static long number(Object value) {
-        return value instanceof Number number ? number.longValue() : Long.parseLong(String.valueOf(value));
     }
 
     private String newToken() {

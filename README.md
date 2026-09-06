@@ -51,12 +51,14 @@ src/main/java/com/chenglei/miniprogram/
 │   ├── WeChatApiService.java            # 微信 jscode2session 封装
 │   └── BearerAuthenticationFilter.java  # Bearer token 鉴权
 ├── badge/                               # 徽章解锁判定与 user_badge 流水
-├── common/storage/                      # game_progress/game_event 通用进度存储
-├── guardian/ puzzle/ quiz/ story/       # 三个游戏 + 林蛙知识闯关的服务端逻辑
-├── integration/                         # 首页、资料、游戏、排行榜、公益等接口
+├── common/
+│   ├── db/                              # RowValues：MyBatis Map 行的大小写不敏感取值
+│   ├── storage/                         # game_progress/game_event 通用进度存储
+│   └── ...                              # 统一响应、异常、请求处理
+├── guardian/ puzzle/ quiz/ story/ unlock/  # 各游戏与扫码解锁：Controller(接口) + Service(业务) + Mapper(数据)
+├── integration/                         # 首页/资料/排行榜/公益聚合服务与对应接口
 ├── system/                              # 系统接口
 ├── config/                              # Spring Security 和 Web 配置
-├── common/                              # 通用响应、异常和请求处理
 └── resources/
     ├── application.yml                  # 默认配置
     └── db/migration/                    # Flyway 数据库迁移脚本
@@ -66,7 +68,9 @@ src/test/
 └── resources/application.yml            # H2 测试数据库配置
 ```
 
-项目按业务模块划分 Controller，因此没有单独的 `controller` 文件夹。当前 Controller 位于 `auth`、`integration`、`system` 以及 `puzzle` 包中。
+分层约定：Controller 只做参数校验、身份提取与响应包装；业务规则在 Service；
+数据访问在 MyBatis Mapper。跨模块读取进度 JSON 时使用所属模块的
+`*StateJson` 编解码组件，不直接解析对方的字段名。
 
 ## 数据库
 

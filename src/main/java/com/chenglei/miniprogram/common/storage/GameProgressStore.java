@@ -10,6 +10,9 @@ public interface GameProgressStore {
     /** 读取用户在某游戏下的状态 JSON；无记录返回 null。 */
     String loadState(String userId, String gameId);
 
+    /** 读取通关标记（game_progress.completed 列），避免消费方解析状态 JSON。 */
+    boolean isCompleted(String userId, String gameId);
+
     /**
      * 加锁读取状态（db 实现为 FOR UPDATE 行锁），无记录时插入初始行并返回其 JSON。
      * 用于"读取-修改-写回"的事件处理路径，保证同一用户的并发事件串行化。

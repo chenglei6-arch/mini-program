@@ -1,6 +1,7 @@
 package com.chenglei.miniprogram.guardian;
 
 import com.chenglei.miniprogram.badge.BadgeService;
+import com.chenglei.miniprogram.common.db.RowValues;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
 import com.chenglei.miniprogram.integration.ContentCatalogService;
@@ -75,8 +76,8 @@ public class GuardianGameService {
             }
 
             Map<String, Object> dailyState = dailyStateForUpdate(userId, today);
-            int drawsUsed = number(valueOf(dailyState, "drawsUsed"));
-            boolean shareBonusClaimed = bool(valueOf(dailyState, "shareBonusClaimed"));
+            int drawsUsed = number(RowValues.valueOf(dailyState, "drawsUsed"));
+            boolean shareBonusClaimed = bool(RowValues.valueOf(dailyState, "shareBonusClaimed"));
             if (remainingDraws(drawsUsed, shareBonusClaimed) <= 0) {
                 throw new BusinessException(ErrorCode.CONFLICT, "今日摇一摇次数已用完，分享后可额外获得 1 次");
             }
@@ -100,11 +101,11 @@ public class GuardianGameService {
             LocalDate today = LocalDate.now(GAME_ZONE);
             Map<String, Object> round = mapper.selectRoundForUpdate(userId);
             if (round == null) throw new BusinessException(ErrorCode.CONFLICT, "当前没有待回答的守护神题目");
-            if (!String.valueOf(valueOf(round, "roundId")).equals(roundId)) {
+            if (!String.valueOf(RowValues.valueOf(round, "roundId")).equals(roundId)) {
                 throw new BusinessException(ErrorCode.CONFLICT, "守护神题目已更新，请按当前题目作答");
             }
 
-            Map<String, Object> frog = frogById(String.valueOf(valueOf(round, "frogId")));
+            Map<String, Object> frog = frogById(String.valueOf(RowValues.valueOf(round, "frogId")));
             if (frog == null) throw new BusinessException(ErrorCode.NOT_FOUND, "守护神角色不存在");
             if (!String.valueOf(frog.get("pattern")).equals(pattern)) {
                 return eventResult(buildProgress(userId, today, true), Map.of(
@@ -130,7 +131,7 @@ public class GuardianGameService {
         return mutate(userId, idempotencyKey, "share", () -> {
             LocalDate today = LocalDate.now(GAME_ZONE);
             Map<String, Object> dailyState = dailyStateForUpdate(userId, today);
-            if (bool(valueOf(dailyState, "shareBonusClaimed"))) {
+            if (bool(RowValues.valueOf(dailyState, "shareBonusClaimed"))) {
                 throw new BusinessException(ErrorCode.CONFLICT, "今日分享额外次数已领取");
             }
             mapper.claimShareBonus(userId, today);
@@ -160,8 +161,8 @@ public class GuardianGameService {
 
     private Map<String, Object> buildProgress(String userId, LocalDate date, boolean lockRound) {
         Map<String, Object> dailyState = lockRound ? dailyStateForUpdate(userId, date) : mapper.selectDailyState(userId, date);
-        int drawsUsed = dailyState == null ? 0 : number(valueOf(dailyState, "drawsUsed"));
-        boolean shareBonusClaimed = dailyState != null && bool(valueOf(dailyState, "shareBonusClaimed"));
+        int drawsUsed = dailyState == null ? 0 : number(RowValues.valueOf(dailyState, "drawsUsed"));
+        boolean shareBonusClaimed = dailyState != null && bool(RowValues.valueOf(dailyState, "shareBonusClaimed"));
         List<String> collectedIds = mapper.selectCollectedFrogIds(userId);
         Map<String, Object> round = lockRound ? mapper.selectRoundForUpdate(userId) : mapper.selectRound(userId);
         List<Map<String, Object>> frogs = formalFrogs();
@@ -203,10 +204,10 @@ public class GuardianGameService {
         if (idempotencyKey == null || idempotencyKey.isBlank()) return operation.get();
         Map<String, Object> existing = mapper.selectEvent(userId, idempotencyKey);
         if (existing != null) {
-            if (!eventType.equals(String.valueOf(valueOf(existing, "eventType")))) {
+            if (!eventType.equals(String.valueOf(RowValues.valueOf(existing, "eventType")))) {
                 throw new BusinessException(ErrorCode.CONFLICT, "幂等键不能用于不同的守护神操作");
             }
-            Map<String, Object> response = readMap(String.valueOf(valueOf(existing, "responseJson")));
+            Map<String, Object> response = readMap(String.valueOf(RowValues.valueOf(existing, "responseJson")));
             response.put("duplicated", true);
             return response;
         }
@@ -252,16 +253,16 @@ public class GuardianGameService {
     }
 
     private Map<String, Object> challengeFor(Map<String, Object> round) {
-        Map<String, Object> frog = frogById(String.valueOf(valueOf(round, "frogId")));
+        Map<String, Object> frog = frogById(String.valueOf(RowValues.valueOf(round, "frogId")));
         if (frog == null) throw new BusinessException(ErrorCode.NOT_FOUND, "守护神角色不存在");
         Map<String, Object> challenge = new LinkedHashMap<>();
-        challenge.put("roundId", valueOf(round, "roundId"));
+        challenge.put("roundId", RowValues.valueOf(round, "roundId"));
         challenge.put("frogId", frog.get("id"));
         challenge.put("name", frog.get("name"));
         challenge.put("shortName", frog.get("shortName"));
         challenge.put("assetUrl", frog.get("assetUrl"));
-        challenge.put("options", readOptions(String.valueOf(valueOf(round, "optionsJson"))));
-        challenge.put("createdAt", valueOf(round, "createdAt"));
+        challenge.put("options", readOptions(String.valueOf(RowValues.valueOf(round, "optionsJson"))));
+        challenge.put("createdAt", RowValues.valueOf(round, "createdAt"));
         return challenge;
     }
 
@@ -327,16 +328,6 @@ public class GuardianGameService {
 
     private static boolean bool(Object value) {
         return value instanceof Boolean bool ? bool : "1".equals(String.valueOf(value)) || Boolean.parseBoolean(String.valueOf(value));
-    }
-
-    private static Object valueOf(Map<String, Object> values, String key) {
-        Object value = values.get(key);
-        if (value != null || values.containsKey(key)) return value;
-        return values.entrySet().stream()
-            .filter(entry -> entry.getKey().equalsIgnoreCase(key))
-            .map(Map.Entry::getValue)
-            .findFirst()
-            .orElse(null);
     }
 
     private record GuardianBadge(String id, String name, String level, int requiredCollectionCount) { }

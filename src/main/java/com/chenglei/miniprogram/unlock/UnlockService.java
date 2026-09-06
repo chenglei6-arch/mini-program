@@ -1,5 +1,6 @@
 package com.chenglei.miniprogram.unlock;
 
+import com.chenglei.miniprogram.common.db.RowValues;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
 import com.chenglei.miniprogram.integration.ContentCatalogService;
@@ -46,12 +47,12 @@ public class UnlockService implements ApplicationRunner {
     public Map<String, Object> redeem(String userId, String code) {
         Map<String, Object> codeRow = mapper.selectByCodeForUpdate(code);
         if (codeRow == null) throw new BusinessException(ErrorCode.NOT_FOUND, "二维码无效");
-        if (!"unused".equals(String.valueOf(valueOf(codeRow, "status")))) {
+        if (!"unused".equals(String.valueOf(RowValues.valueOf(codeRow, "status")))) {
             throw new BusinessException(ErrorCode.CONFLICT, "该二维码已被使用");
         }
-        String frogId = String.valueOf(valueOf(codeRow, "frogId"));
+        String frogId = String.valueOf(RowValues.valueOf(codeRow, "frogId"));
 
-        if (mapper.markRedeemed(((Number) valueOf(codeRow, "id")).longValue(), userId) == 0) {
+        if (mapper.markRedeemed(((Number) RowValues.valueOf(codeRow, "id")).longValue(), userId) == 0) {
             throw new BusinessException(ErrorCode.CONFLICT, "该二维码已被使用");
         }
         mapper.insertRecord(Long.parseLong(userId), code);
@@ -70,14 +71,4 @@ public class UnlockService implements ApplicationRunner {
         return response;
     }
 
-    /** H2（DATABASE_TO_LOWER）会把列别名转小写，MySQL 保留大小写，因此按键大小写不敏感取值。 */
-    private static Object valueOf(Map<String, Object> values, String key) {
-        Object value = values.get(key);
-        if (value != null || values.containsKey(key)) return value;
-        return values.entrySet().stream()
-            .filter(entry -> entry.getKey().equalsIgnoreCase(key))
-            .map(Map.Entry::getValue)
-            .findFirst()
-            .orElse(null);
-    }
 }

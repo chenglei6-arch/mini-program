@@ -31,11 +31,14 @@ public class ForestQuizGameService {
     private final ForestQuizMapper mapper;
     private final ObjectMapper objectMapper;
     private final BadgeService badgeService;
+    private final QuizStateJson quizStateJson;
 
-    public ForestQuizGameService(ForestQuizMapper mapper, ObjectMapper objectMapper, BadgeService badgeService) {
+    public ForestQuizGameService(ForestQuizMapper mapper, ObjectMapper objectMapper, BadgeService badgeService,
+        QuizStateJson quizStateJson) {
         this.mapper = mapper;
         this.objectMapper = objectMapper;
         this.badgeService = badgeService;
+        this.quizStateJson = quizStateJson;
         loadLevels();
     }
 
@@ -125,7 +128,8 @@ public class ForestQuizGameService {
             return initial;
         }
         try {
-            List<String> completed = objectMapper.readValue(String.valueOf(saved.get("completedLevelsJson")), new TypeReference<List<String>>() { });
+            List<String> completed = quizStateJson.completedLevelIds(
+                String.valueOf(saved.get("completedLevelsJson")));
             String currentLevelId = saved.get("currentLevelId") == null ? null : String.valueOf(saved.get("currentLevelId"));
             PlayerState state = new PlayerState(currentLevelId);
             state.completedLevels.addAll(completed);
@@ -139,7 +143,7 @@ public class ForestQuizGameService {
 
     private void persist(String userId, PlayerState state) {
         try {
-            String completed = objectMapper.writeValueAsString(state.completedLevels);
+            String completed = quizStateJson.write(new ArrayList<>(state.completedLevels));
             if (mapper.selectProgress(userId) == null) {
                 mapper.insertProgress(userId, completed, state.currentLevelId, state.questionIndex, state.correctCount);
             } else {
