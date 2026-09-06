@@ -1,8 +1,8 @@
 const environments = {
   development: {
     name: 'development',
-    // baseUrl: 'https://www.luolikongchenglei.asia/',
-    baseUrl: 'http://localhost:8080',
+    baseUrl: 'https://www.luolikongchenglei.asia/',
+    // baseUrl: 'http://localhost:8080',
     assetVersion: '3',
     timeout: 10000,
   },
