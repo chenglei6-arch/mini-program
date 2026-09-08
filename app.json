@@ -1,7 +1,6 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/games/paper-cutting/paper-cutting",
     "pages/games/story/story",
     "pages/games/guardian/guardian",
     "pages/games/forest-quiz/forest-quiz",
