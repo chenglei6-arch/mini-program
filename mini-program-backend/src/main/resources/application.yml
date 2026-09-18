@@ -1,0 +1,69 @@
+spring:
+  application:
+    name: mini-program-backend
+  output:
+    ansi:
+      enabled: ALWAYS
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/mini_program?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${DB_USERNAME:mini_program_app}
+    password: ${DB_PASSWORD:}
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-timeout: 30000
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-migration-naming: true
+  jackson:
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: framework
+  error:
+    include-message: never
+    include-stacktrace: never
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+
+app:
+  auth:
+    access-token-ttl-seconds: ${AUTH_ACCESS_TOKEN_TTL:7200}
+    # 仅在本地联调时显式填写：填了才会在未配置微信凭据时按该 openid 签发会话。
+    dev-openid: ${APP_AUTH_DEV_OPENID:}
+  wechat:
+    appid: ${WECHAT_APPID:}
+    secret: ${WECHAT_SECRET:}
+  content:
+    # 默认只返回正式内容；需要联调测试数据时显式设置 CONTENT_INCLUDE_TEST_DATA=true。
+    include-test-data: ${CONTENT_INCLUDE_TEST_DATA:false}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+
+logging:
+  level:
+    root: INFO
+    com.chenglei.miniprogram: INFO
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %highlight(%-5level) %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} : %m%n%wEx"

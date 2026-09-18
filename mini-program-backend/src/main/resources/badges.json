@@ -1,0 +1,19 @@
+{
+  "badges": [
+    {"id": "paper-beginner", "name": "剪纸新手", "level": "bronze", "condition": {"type": "frogs", "count": 1}},
+    {"id": "story-listener", "name": "故事聆听者", "level": "bronze", "condition": {"type": "story-routes", "count": 1}},
+    {"id": "guardian-first", "name": "守护神初遇", "level": "bronze", "condition": {"type": "guardian", "count": 1}},
+    {"id": "guardian-messenger", "name": "守护神使者", "level": "silver", "condition": {"type": "guardian", "count": 3}},
+    {"id": "paper-craftsman", "name": "剪纸匠人", "level": "silver", "condition": {"type": "frogs", "count": 5}},
+    {"id": "story-inheritor", "name": "说部传承人", "level": "silver", "condition": {"type": "story-routes", "count": 2}},
+    {"id": "story-guardian", "name": "说部守护者", "level": "gold", "condition": {"type": "story-finished"}},
+    {"id": "guardian-nine", "name": "九蛙守护者", "level": "gold", "condition": {"type": "guardian", "count": 9}},
+    {"id": "paper-master", "name": "剪纸大师", "level": "gold", "condition": {"type": "frogs", "count": 9}},
+    {"id": "quiz-morphology", "name": "形态徽章", "level": "bronze", "condition": {"type": "quiz-level", "levelId": "morphology"}},
+    {"id": "quiz-distribution", "name": "分布徽章", "level": "bronze", "condition": {"type": "quiz-level", "levelId": "distribution"}},
+    {"id": "quiz-diet", "name": "食性徽章", "level": "bronze", "condition": {"type": "quiz-level", "levelId": "diet"}},
+    {"id": "quiz-hibernation", "name": "冬眠徽章", "level": "bronze", "condition": {"type": "quiz-level", "levelId": "hibernation"}},
+    {"id": "quiz-reproduction", "name": "繁殖徽章", "level": "bronze", "condition": {"type": "quiz-level", "levelId": "reproduction"}},
+    {"id": "quiz-protection", "name": "保护徽章", "level": "bronze", "condition": {"type": "quiz-level", "levelId": "protection"}}
+  ]
+}

@@ -1,0 +1,238 @@
+{
+  "frogs": [
+    {
+      "frogId": "forest",
+      "name": "护林蛙",
+      "components": [
+        {
+          "id": "forest-main",
+          "name": "主体",
+          "assetUrl": "/assets/frogs/components/forest-main.png",
+          "order": 1
+        },
+        {
+          "id": "forest-mountain",
+          "name": "山纹",
+          "assetUrl": "/assets/frogs/components/forest-mountain.png",
+          "order": 2
+        },
+        {
+          "id": "forest-border",
+          "name": "边框",
+          "assetUrl": "/assets/frogs/components/forest-border.png",
+          "order": 3
+        }
+      ]
+    },
+    {
+      "frogId": "lotus",
+      "name": "荷叶蛙",
+      "components": [
+        {
+          "id": "lotus-main",
+          "name": "主体",
+          "assetUrl": "/assets/frogs/components/lotus-main.png",
+          "order": 1
+        },
+        {
+          "id": "lotus-water",
+          "name": "水波纹",
+          "assetUrl": "/assets/frogs/components/lotus-water.png",
+          "order": 2
+        },
+        {
+          "id": "lotus-leaf",
+          "name": "荷叶",
+          "assetUrl": "/assets/frogs/components/lotus-leaf.png",
+          "order": 3
+        },
+        {
+          "id": "lotus-border",
+          "name": "边框",
+          "assetUrl": "/assets/frogs/components/lotus-border.png",
+          "order": 4
+        }
+      ]
+    },
+    {
+      "frogId": "snow",
+      "name": "天池映雪蛙",
+      "components": [
+        {
+          "id": "snow-main",
+          "name": "主体",
+          "assetUrl": "/assets/frogs/components/snow-main.png",
+          "order": 1
+        },
+        {
+          "id": "snow-pattern",
+          "name": "纹路",
+          "assetUrl": "/assets/frogs/components/snow-pattern.png",
+          "order": 2
+        },
+        {
+          "id": "snow-border",
+          "name": "边框",
+          "assetUrl": "/assets/frogs/components/snow-border.png",
+          "order": 3
+        }
+      ]
+    },
+    {
+      "frogId": "youth",
+      "name": "驻颜蛙",
+      "components": [
+        {
+          "id": "youth-main",
+          "name": "主体",
+          "assetUrl": "/assets/frogs/components/youth-main.png",
+          "order": 1
+        },
+        {
+          "id": "youth-ring",
+          "name": "外环",
+          "assetUrl": "/assets/frogs/components/youth-ring.png",
+          "order": 2
+        },
+        {
+          "id": "youth-pattern",
+          "name": "纹样",
+          "assetUrl": "/assets/frogs/components/youth-pattern.png",
+          "order": 3
+        }
+      ]
+    },
+    {
+      "frogId": "immune",
+      "name": "免疫蛙",
+      "components": [
+        {
+          "id": "immune-main",
+          "name": "主体",
+          "assetUrl": "/assets/frogs/components/immune-main.png",
+          "order": 1
+        },
+        {
+          "id": "immune-pattern",
+          "name": "纹样",
+          "assetUrl": "/assets/frogs/components/immune-pattern.png",
+          "order": 2
+        },
+        {
+          "id": "immune-border",
+          "name": "边框",
+          "assetUrl": "/assets/frogs/components/immune-border.png",
+          "order": 3
+        }
+      ]
+    },
+    {
+      "frogId": "hibernation",
+      "name": "冬眠蛙",
+      "components": [
+        {
+          "id": "hibernation-main",
+          "name": "主体",
+          "assetUrl": "/assets/frogs/components/hibernation-main.png",
+          "order": 1
+        },
+        {
+          "id": "hibernation-pattern-border",
+          "name": "纹路边框",
+          "assetUrl": "/assets/frogs/components/hibernation-pattern-border.png",
+          "order": 2
+        },
+        {
+          "id": "hibernation-border",
+          "name": "边框",
+          "assetUrl": "/assets/frogs/components/hibernation-border.png",
+          "order": 3
+        }
+      ]
+    },
+    {
+      "frogId": "ginseng",
+      "name": "采参蛙",
+      "components": [
+        {
+          "id": "ginseng-main",
+          "name": "主体",
+          "assetUrl": "/assets/frogs/components/ginseng-main.png",
+          "order": 1
+        },
+        {
+          "id": "ginseng-cloud",
+          "name": "云纹",
+          "assetUrl": "/assets/frogs/components/ginseng-cloud.png",
+          "order": 2
+        },
+        {
+          "id": "ginseng-leaf",
+          "name": "参叶纹",
+          "assetUrl": "/assets/frogs/components/ginseng-leaf.png",
+          "order": 3
+        },
+        {
+          "id": "ginseng-water-border",
+          "name": "水波纹边框",
+          "assetUrl": "/assets/frogs/components/ginseng-water-border.png",
+          "order": 4
+        }
+      ]
+    },
+    {
+      "frogId": "lung",
+      "name": "润肺蛙",
+      "components": [
+        {
+          "id": "lung-main",
+          "name": "主体",
+          "assetUrl": "/assets/frogs/components/lung-main.png",
+          "order": 1
+        },
+        {
+          "id": "lung-cloud",
+          "name": "云纹",
+          "assetUrl": "/assets/frogs/components/lung-cloud.png",
+          "order": 2
+        },
+        {
+          "id": "lung-mountain",
+          "name": "山纹",
+          "assetUrl": "/assets/frogs/components/lung-mountain.png",
+          "order": 3
+        },
+        {
+          "id": "lung-border",
+          "name": "边框",
+          "assetUrl": "/assets/frogs/components/lung-border.png",
+          "order": 4
+        }
+      ]
+    },
+    {
+      "frogId": "insect",
+      "name": "捕虫蛙",
+      "components": [
+        {
+          "id": "insect-main",
+          "name": "主体",
+          "assetUrl": "/assets/frogs/components/insect-main.png",
+          "order": 1
+        },
+        {
+          "id": "insect-outer-frame",
+          "name": "外框",
+          "assetUrl": "/assets/frogs/components/insect-outer-frame.png",
+          "order": 2
+        },
+        {
+          "id": "insect-pattern",
+          "name": "纹样",
+          "assetUrl": "/assets/frogs/components/insect-pattern.png",
+          "order": 3
+        }
+      ]
+    }
+  ]
+}

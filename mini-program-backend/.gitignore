@@ -1,0 +1,59 @@
+HELP.md
+target/
+.mvn/repository/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### Local environment and secrets ###
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Design sources (archival only, never commit) ###
+# 分层工程文件与设计归档，只用于二次设计
+*.psb
+*.psd
+*.ai
+design-sources/
+
+### Static assets (served from OSS/CDN, not committed) ###
+# 运行时图片素材不入库：本机开发时文件照常放在这些目录，但 git 不跟踪，
+# 新克隆需从 OSS/CDN 拉取，或按 design-sources/README.md 重新导出
+src/main/resources/static/assets/frogs/*.png
+src/main/resources/static/assets/frogs/components/
+src/main/resources/static/assets/sources/
