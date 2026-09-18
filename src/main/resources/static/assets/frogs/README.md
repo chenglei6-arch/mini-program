@@ -5,6 +5,8 @@
 ## 当前内容
 
 - 九张 `*.png`：角色墙与详情页用的预览图，1024x1024 透明 PNG，按有效 Alpha 内容边界归一化留白。
+  **已移出仓库**（见仓库根 `.gitignore`）：本机开发时文件照常放在本目录，新克隆没有这些图，
+  需从 OSS/CDN 拉取，或按 `design-sources/README.md` 从设计源文件（2048 整图）重新导出并归一化。
 - `GET /v1/content/frogs` 返回稳定的 `assetUrl`（相对路径 `/assets/frogs/{id}.png`），由小程序端拼接域名。
 
 ## 已移出运行时
