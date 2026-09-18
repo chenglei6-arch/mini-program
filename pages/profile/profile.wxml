@@ -9,36 +9,32 @@
       </button>
       <view class="profile-identity">
         <input class="nickname-input" type="nickname" value="{{nicknameDraft}}" placeholder="未设置昵称" bindchange="changeNickname" />
-        <view class="profile-label">{{profile.user.isGuest ? '资料开发中' : '已完善资料'}}</view>
       </view>
     </view>
 
     <view class="section">
       <view class="section-title"><text class="section-title__main">收集进度</text></view>
-      <view wx:if="{{profile.status !== 'DEVELOPMENT'}}" class="stats surface">
+      <view class="stats surface">
         <view class="stat"><view class="stat__value">{{profile.stats.frogs}}/{{profile.stats.frogsTotal}}</view><view class="stat__label">角色</view></view>
-        <view class="stat"><view class="stat__value">{{profile.stats.patterns}}/{{profile.stats.patternsTotal}}</view><view class="stat__label">纹样</view></view>
         <view class="stat"><view class="stat__value">{{profile.stats.badges}}/{{profile.stats.badgesTotal}}</view><view class="stat__label">徽章</view></view>
       </view>
-      <view wx:else class="surface empty-state">收集进度开发中</view>
     </view>
 
     <view class="section">
       <view class="section-title"><text class="section-title__main">成就徽章</text><text class="section-title__sub">青铜 / 白银 / 黄金</text></view>
-      <view wx:if="{{profile.status !== 'DEVELOPMENT'}}" class="badge-grid surface">
+      <view class="badge-grid surface">
         <view wx:for="{{profile.badges}}" wx:key="id" class="badge {{item.unlocked ? 'badge--active' : ''}}">
           <view class="badge__mark">{{index + 1}}</view>
           <view class="badge__name">{{item.name}}</view>
         </view>
       </view>
-      <view wx:else class="surface empty-state">成就徽章开发中</view>
     </view>
 
     <view class="section menu surface">
-      <view class="menu-item" bindtap="openWelfare"><text>我的公益贡献</text><text>开发中 ></text></view>
+      <view class="menu-item" bindtap="openWelfare"><text>我的公益贡献</text><text>></text></view>
       <view class="menu-item" bindtap="openRankings"><text>非遗传承排行榜</text><text>></text></view>
       <view class="menu-item" bindtap="scanUnlock"><text>扫码解锁角色</text><text>></text></view>
-      <view class="menu-item"><text>我的订单</text><text>开发中 ></text></view>
+      <view class="menu-item" bindtap="openOrders"><text>我的订单</text><text>></text></view>
     </view>
   </block>
 </scroll-view>

@@ -1,5 +1,4 @@
 const auth = require('../../utils/auth')
-const storage = require('../../utils/storage')
 const userService = require('../../services/user')
 
 Component({
@@ -12,7 +11,7 @@ Component({
     attached() {
       auth.withLogin(() => this.loadProfile()).catch((error) => {
         this.setData({ loading: false })
-        wx.showToast({ title: error && error.code === 401 ? '登录失败，请稍后重试' : '个人信息加载失败', icon: 'none' })
+        wx.showToast({ title: error.message || '个人信息加载失败', icon: 'none' })
       })
     },
   },
@@ -20,8 +19,6 @@ Component({
     loadProfile() {
       return userService.getProfile()
         .then((profile) => {
-          const local = auth.getUser()
-          if (local) profile.user = { ...profile.user, ...local }
           this.setData({ profile, nicknameDraft: profile.user.nickname || '' })
         })
         .finally(() => this.setData({ loading: false }))
@@ -40,13 +37,13 @@ Component({
       this.saveProfile({ nickname })
     },
     saveProfile(patch) {
-      const user = { ...this.data.profile.user, ...patch, isGuest: false }
       auth.withLogin(() => userService.updateProfile(patch))
-        .then(() => storage.set('user_profile', user))
-        .catch(() => wx.showToast({ title: '资料保存失败', icon: 'none' }))
+        .then((user) => this.setData({ 'profile.user': user }))
+        .catch((error) => wx.showToast({ title: error.message || '资料保存失败', icon: 'none' }))
     },
     openRankings() { wx.navigateTo({ url: '/pages/rankings/rankings' }) },
     openWelfare() { wx.navigateTo({ url: '/pages/welfare/welfare' }) },
+    openOrders() { wx.navigateTo({ url: '/pages/mall/orders/orders' }) },
     scanUnlock() { wx.navigateTo({ url: '/pages/scan/scan' }) },
   },
 })

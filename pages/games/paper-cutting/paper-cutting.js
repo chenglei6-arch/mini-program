@@ -40,7 +40,7 @@ Component({
     // 加载所有青蛙列表
     async loadFrogs() {
       try {
-        const frogsData = await contentService.getFrogs()
+        const frogsData = await auth.withLogin(() => contentService.getFrogs())
         this.setData({
           availableFrogs: frogsData.items || []
         })
@@ -68,7 +68,7 @@ Component({
         wx.showLoading({ title: '加载中...' })
 
         // 获取青蛙组件列表
-        const componentsData = await gameService.getFrogComponents(frogId)
+        const componentsData = await auth.withLogin(() => gameService.getFrogComponents(frogId))
         const frog = this.data.availableFrogs.find(f => f.id === frogId)
 
         // 处理组件图片URL
@@ -238,7 +238,9 @@ Component({
           gameService.submitFrogComplete(
             this.data.selectedFrogId,
             payload,
-            `frog-${this.data.selectedFrogId}-${Date.now()}`
+            // 每只蛙的完成事件幂等键固定：服务端本身对重复完成也做了去重，
+            // 固定 key 让超时重试能拿到已记录的结果而不是报错。
+            `frog-${this.data.selectedFrogId}`
           )
         )
       } catch (error) {

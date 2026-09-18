@@ -1,0 +1,20 @@
+<app-navigation-bar title="我的订单" color="#24342D" background="#F7F4EC"></app-navigation-bar>
+
+<scroll-view class="page" scroll-y refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="loadOrders">
+  <view wx:if="{{loading}}" class="empty-state">正在加载订单...</view>
+
+  <block wx:if="{{!loading}}">
+    <view wx:if="{{orders.length === 0}}" class="surface empty-state">暂无订单，去商城逛逛吧</view>
+    <view wx:for="{{orders}}" wx:key="orderNo" class="order-card surface">
+      <view class="order-card__head">
+        <text class="order-card__no">{{item.orderNo}}</text>
+        <text class="order-card__status">{{item.statusText}}</text>
+      </view>
+      <view class="order-card__product">{{item.productName}} × {{item.quantity}}</view>
+      <view class="order-card__foot">
+        <text class="order-card__time">{{item.createdAtText}}</text>
+        <text class="order-card__total">¥ {{item.totalText}}</text>
+      </view>
+    </view>
+  </block>
+</scroll-view>

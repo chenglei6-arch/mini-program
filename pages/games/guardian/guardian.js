@@ -1,15 +1,6 @@
 const gamesService = require('../../../services/games')
-const env = require('../../../config/env')
-
-// 处理图片URL：如果是相对路径，拼接baseUrl
-function buildImageUrl(assetUrl) {
-  if (!assetUrl) return ''
-  if (/^https?:\/\//.test(assetUrl)) return assetUrl // 已经是完整URL
-  if (assetUrl.startsWith('/')) {
-    return `${env.baseUrl.replace(/\/$/, '')}${assetUrl}` // 拼接baseUrl
-  }
-  return assetUrl
-}
+const auth = require('../../../utils/auth')
+const { resolveAssetUrl } = require('../../../utils/assets')
 
 Component({
   data: {
@@ -55,6 +46,10 @@ Component({
     },
     detached() {
       this.stopShakeListener()
+      if (this._resultTimer) {
+        clearTimeout(this._resultTimer)
+        this._resultTimer = null
+      }
     },
   },
 
@@ -93,36 +88,43 @@ Component({
       this.onShake()
     },
 
+    // 把服务端 progress 响应映射为页面 data；结果弹窗相关字段由调用方补充
+    mapProgressData(progress) {
+      const state = progress.state
+      return {
+        completed: progress.completed,
+        total: progress.total,
+        finished: progress.finished,
+
+        dailyFreeDraws: state.dailyFreeDraws,
+        drawsUsed: state.drawsUsed,
+        remainingDraws: state.remainingDraws,
+        shareBonusClaimed: state.shareBonusClaimed,
+        canClaimShareBonus: state.canClaimShareBonus,
+
+        collectedFrogIds: state.collectedFrogIds,
+        collection: state.collection.map(item => ({
+          ...item,
+          assetUrl: resolveAssetUrl(item.assetUrl)
+        })),
+        badges: state.badges,
+
+        activeChallenge: state.activeChallenge ? {
+          ...state.activeChallenge,
+          assetUrl: resolveAssetUrl(state.activeChallenge.assetUrl)
+        } : null,
+      }
+    },
+
     // 加载游戏进度
     async loadProgress() {
       try {
         this.setData({ loading: true, error: null })
-        const progress = await gamesService.getGameProgress(this.data.gameId)
+        const progress = await auth.withLogin(() => gamesService.getGameProgress(this.data.gameId))
 
-        const state = progress.state || {}
         this.setData({
           loading: false,
-          completed: progress.completed || 0,
-          total: progress.total || 9,
-          finished: progress.finished || false,
-
-          dailyFreeDraws: state.dailyFreeDraws || 3,
-          drawsUsed: state.drawsUsed || 0,
-          remainingDraws: state.remainingDraws || 0,
-          shareBonusClaimed: state.shareBonusClaimed || false,
-          canClaimShareBonus: state.canClaimShareBonus !== false,
-
-          collectedFrogIds: state.collectedFrogIds || [],
-          collection: (state.collection || []).map(item => ({
-            ...item,
-            assetUrl: buildImageUrl(item.assetUrl)
-          })),
-          badges: state.badges || [],
-
-          activeChallenge: state.activeChallenge ? {
-            ...state.activeChallenge,
-            assetUrl: buildImageUrl(state.activeChallenge.assetUrl)
-          } : null,
+          ...this.mapProgressData(progress),
           selectedPattern: null,
         })
       } catch (error) {
@@ -160,12 +162,17 @@ Component({
         // 触发摇一摇动画
         wx.vibrateShort({ type: 'medium' })
 
-        const idempotencyKey = `draw-${Date.now()}-${Math.random().toString(36).slice(2)}`
-        const result = await gamesService.submitGameEvent(
+        // 幂等键在一次"摇一摇"生命周期内保持不变：网络超时后重试会命中
+        // 服务端去重；拿到服务端结论后清空，下一次摇一摇是新的逻辑操作。
+        if (!this._drawEventKey) {
+          this._drawEventKey = `guardian-draw-${Date.now()}-${Math.random().toString(36).slice(2)}`
+        }
+        const result = await auth.withLogin(() => gamesService.submitGameEvent(
           this.data.gameId,
           { type: 'draw' },
-          idempotencyKey
-        )
+          this._drawEventKey
+        ))
+        this._drawEventKey = null
 
         await this.handleDrawResult(result)
       } catch (error) {
@@ -181,34 +188,23 @@ Component({
 
     // 处理抽取结果
     async handleDrawResult(result) {
-      const progress = result.progress || {}
-      const action = result.action || {}
-      const state = progress.state || {}
-
-      // 处理activeChallenge的图片URL
-      const activeChallenge = state.activeChallenge
-      if (activeChallenge) {
-        activeChallenge.assetUrl = buildImageUrl(activeChallenge.assetUrl)
-      }
+      const action = result.action
 
       this.setData({
-        completed: progress.completed || 0,
-        drawsUsed: state.drawsUsed || 0,
-        remainingDraws: state.remainingDraws || 0,
-        activeChallenge: activeChallenge || null,
+        ...this.mapProgressData(result.progress),
         selectedPattern: null,
       })
 
       if (action.drawn) {
         // 成功抽到守护神，等待用户答题
         wx.showToast({
-          title: action.message || '守护神已现身',
+          title: action.message,
           icon: 'success',
           duration: 1500
         })
       } else {
         wx.showToast({
-          title: action.message || '请先完成当前守护神纹样题',
+          title: action.message,
           icon: 'none'
         })
       }
@@ -234,8 +230,8 @@ Component({
       try {
         this.setData({ submitting: true })
 
-        const idempotencyKey = `answer-${activeChallenge.roundId}-${Date.now()}`
-        const result = await gamesService.submitGameEvent(
+        // 同一道题的幂等键固定为 roundId：超时重试命中服务端去重，返回已记录的结果。
+        const result = await auth.withLogin(() => gamesService.submitGameEvent(
           this.data.gameId,
           {
             type: 'answer',
@@ -244,8 +240,8 @@ Component({
               pattern: selectedPattern
             }
           },
-          idempotencyKey
-        )
+          `guardian-answer-${activeChallenge.roundId}`
+        ))
 
         await this.handleAnswerResult(result)
       } catch (error) {
@@ -261,46 +257,38 @@ Component({
 
     // 处理答题结果
     async handleAnswerResult(result) {
-      const progress = result.progress || {}
-      const action = result.action || {}
-      const state = progress.state || {}
+      const action = result.action
 
       if (action.correct) {
         // 答对了，处理guardianCard的图片URL
         const guardianCard = action.guardianCard
         if (guardianCard) {
-          guardianCard.assetUrl = buildImageUrl(guardianCard.assetUrl)
+          guardianCard.assetUrl = resolveAssetUrl(guardianCard.assetUrl)
         }
 
         this.setData({
-          completed: progress.completed || 0,
-          finished: progress.finished || false,
-          collectedFrogIds: state.collectedFrogIds || [],
-          collection: (state.collection || []).map(item => ({
-            ...item,
-            assetUrl: buildImageUrl(item.assetUrl)
-          })),
-          badges: state.badges || [],
-          activeChallenge: null,
+          ...this.mapProgressData(result.progress),
           selectedPattern: null,
 
           showResult: true,
           resultType: 'success',
-          resultMessage: action.message || '守护成功',
+          resultMessage: action.message,
           guardianCard: guardianCard || null,
-          newlyUnlockedBadges: action.newlyUnlockedBadges || [],
+          newlyUnlockedBadges: action.newlyUnlockedBadges,
         })
 
         wx.vibrateShort({ type: 'heavy' })
 
         // 3秒后自动关闭结果弹窗
-        setTimeout(() => {
+        if (this._resultTimer) clearTimeout(this._resultTimer)
+        this._resultTimer = setTimeout(() => {
+          this._resultTimer = null
           this.setData({ showResult: false })
         }, 3000)
       } else {
         // 答错了
         wx.showToast({
-          title: action.message || '纹样不对，再试一次',
+          title: action.message,
           icon: 'none'
         })
         this.setData({ selectedPattern: null })
@@ -324,25 +312,21 @@ Component({
       try {
         this.setData({ submitting: true })
 
-        const idempotencyKey = `share-${Date.now()}-${Math.random().toString(36).slice(2)}`
-        const result = await gamesService.submitGameEvent(
+        // 分享奖励每天一次，幂等键按天固定：同一天的重复请求直接命中服务端去重。
+        const now = new Date()
+        const dayKey = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`
+        const result = await auth.withLogin(() => gamesService.submitGameEvent(
           this.data.gameId,
           { type: 'share' },
-          idempotencyKey
-        )
-
-        const progress = result.progress || {}
-        const action = result.action || {}
-        const state = progress.state || {}
+          `guardian-share-${dayKey}`
+        ))
 
         this.setData({
-          shareBonusClaimed: state.shareBonusClaimed || false,
-          canClaimShareBonus: state.canClaimShareBonus !== false,
-          remainingDraws: state.remainingDraws || 0,
+          ...this.mapProgressData(result.progress),
         })
 
         wx.showToast({
-          title: action.message || '分享成功，已获得 1 次额外机会',
+          title: result.action.message,
           icon: 'success'
         })
       } catch (error) {
@@ -360,26 +344,26 @@ Component({
     onRetry() {
       this.loadProgress()
     },
-  },
 
-  // 页面级分享配置
-  onShareAppMessage() {
-    // 分享成功后自动领取奖励
-    this.claimShareBonus()
+    // 页面级分享配置：Component 构造的页面必须放在 methods 内才会生效。
+    onShareAppMessage() {
+      // 分享成功后自动领取奖励
+      this.claimShareBonus()
 
-    return {
-      title: '林蛙守护神 - 摇一摇解锁守护神',
-      path: '/pages/games/guardian/guardian'
-    }
-  },
+      return {
+        title: '林蛙守护神 - 摇一摇解锁守护神',
+        path: '/pages/games/guardian/guardian'
+      }
+    },
 
-  onShareTimeline() {
-    // 分享到朋友圈
-    this.claimShareBonus()
+    onShareTimeline() {
+      // 分享到朋友圈
+      this.claimShareBonus()
 
-    return {
-      title: '林蛙守护神 - 摇一摇解锁守护神'
-    }
+      return {
+        title: '林蛙守护神 - 摇一摇解锁守护神'
+      }
+    },
   },
 })
 

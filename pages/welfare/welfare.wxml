@@ -9,7 +9,7 @@
       <view wx:if="{{summary.updatedAt}}" class="fund-hero__date">最近更新：{{summary.updatedAt}}</view>
     </view>
     <view class="section">
-      <view class="section-title"><text class="section-title__main">资金公示</text><text class="section-title__sub">{{summary.status === 'DEVELOPMENT' ? '开发中' : '按季度更新'}}</text></view>
+      <view class="section-title"><text class="section-title__main">资金公示</text><text class="section-title__sub">按季度更新</text></view>
       <view wx:if="{{summary.reports.length === 0}}" class="surface empty-state">公示报告将在审核发布后展示</view>
       <view wx:for="{{summary.reports}}" wx:key="id" class="report surface"><view>{{item.title}}</view><view class="muted">{{item.date}}</view></view>
     </view>

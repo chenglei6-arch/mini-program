@@ -1,14 +1,19 @@
 const env = require('../config/env')
-const storage = require('./storage')
 
-const TOKEN_KEY = 'access_token'
+// Token 只放在内存里：小程序重启即重新 wx.login 换取新会话，
+// 因此不存在"本地缓存了过期 token"这种需要在 401 时重试兜底的情况。
+let accessToken = ''
 
 function getToken() {
-  return storage.get(TOKEN_KEY, '')
+  return accessToken
+}
+
+function setToken(token) {
+  accessToken = token || ''
 }
 
 function clearToken() {
-  storage.remove(TOKEN_KEY)
+  accessToken = ''
 }
 
 function buildUrl(path) {
@@ -22,19 +27,22 @@ function buildUrl(path) {
   return `${env.baseUrl.replace(/\/$/, '')}/${String(path).replace(/^\//, '')}`
 }
 
+// 契约：{ code, message, data, requestId }，code 为 "0" 才是成功；不符合契约直接抛错。
 function normalizeResponse(response) {
   const payload = response.data
-  if (!payload || typeof payload !== 'object') return payload
-  if (Object.prototype.hasOwnProperty.call(payload, 'code')) {
-    if (payload.code !== 0 && payload.code !== 200 && payload.code !== '0') {
-      const error = new Error(payload.message || '请求失败')
-      error.code = payload.code
-      error.payload = payload
-      throw error
-    }
-    return Object.prototype.hasOwnProperty.call(payload, 'data') ? payload.data : payload
+  if (!payload || typeof payload !== 'object' || !Object.prototype.hasOwnProperty.call(payload, 'code')) {
+    const error = new Error('响应格式不符合接口契约')
+    error.code = 'INVALID_RESPONSE'
+    error.payload = payload
+    throw error
   }
-  return payload
+  if (payload.code !== '0') {
+    const error = new Error(payload.message || '请求失败')
+    error.code = payload.code
+    error.payload = payload
+    throw error
+  }
+  return payload.data
 }
 
 function request(options = {}) {
@@ -45,20 +53,11 @@ function request(options = {}) {
     header = {},
     timeout = env.timeout,
     skipAuth = false,
-    showError = false,
   } = options
 
-  let requestUrl
-  try {
-    requestUrl = buildUrl(url)
-  } catch (error) {
-    if (showError) wx.showToast({ title: '接口环境未配置', icon: 'none' })
-    return Promise.reject(error)
-  }
-
-  const token = getToken()
+  const requestUrl = buildUrl(url)
   const headers = { 'content-type': 'application/json', ...header }
-  if (token && !skipAuth) headers.Authorization = `Bearer ${token}`
+  if (accessToken && !skipAuth) headers.Authorization = `Bearer ${accessToken}`
 
   return new Promise((resolve, reject) => {
     wx.request({
@@ -69,16 +68,21 @@ function request(options = {}) {
       timeout,
       success: (response) => {
         if (response.statusCode === 401) {
+          // 会话已失效：清掉内存 token，页面重新加载时会重新登录。
           clearToken()
           const error = new Error('登录状态已失效')
           error.code = 401
+          error.payload = response.data
           reject(error)
           return
         }
         if (response.statusCode < 200 || response.statusCode >= 300) {
-          const error = new Error(`请求失败（${response.statusCode}）`)
+          // 后端统一返回 ApiResponse{code, message, data}，把可读的 message 透传给页面。
+          const payload = response.data
+          const serverMessage = payload && typeof payload === 'object' ? payload.message : null
+          const error = new Error(serverMessage || `请求失败（${response.statusCode}）`)
           error.code = response.statusCode
-          error.payload = response.data
+          error.payload = payload
           reject(error)
           return
         }
@@ -88,14 +92,9 @@ function request(options = {}) {
           reject(error)
         }
       },
-      fail: (error) => {
-        reject(error)
-      },
+      fail: reject,
     })
-  }).catch((error) => {
-    if (showError) wx.showToast({ title: error.message || '网络异常', icon: 'none' })
-    throw error
   })
 }
 
-module.exports = { request, getToken, clearToken }
+module.exports = { request, getToken, setToken, clearToken }

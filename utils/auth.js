@@ -1,19 +1,4 @@
-const storage = require('./storage')
 const request = require('./request')
-
-const USER_KEY = 'user_profile'
-
-function getUser() {
-  const user = storage.get(USER_KEY, null)
-  if (user && user.nickname === '体验用户') return { ...user, nickname: '' }
-  return user
-}
-
-function saveSession(session) {
-  if (session && session.accessToken) storage.set('access_token', session.accessToken)
-  if (session && session.user) storage.set(USER_KEY, session.user)
-  return session && session.user
-}
 
 function login() {
   // 业务服务端必须用 code 换取自己的 Token，客户端不接触 session_key。
@@ -27,8 +12,9 @@ function login() {
           data: { code },
           skipAuth: true,
         }).then((session) => {
-          return saveSession(session)
-        }).then(resolve).catch(reject)
+          request.setToken(session.accessToken)
+          resolve(session.user)
+        }).catch(reject)
       },
       fail: reject,
     })
@@ -36,25 +22,12 @@ function login() {
 }
 
 function ensureLogin() {
-  const user = getUser()
-  const token = request.getToken()
-  return user && token ? Promise.resolve(user) : login()
+  return request.getToken() ? Promise.resolve() : login()
 }
 
-// Local development sessions are in-memory and become invalid when the backend restarts.
-// Retry the business request once with a fresh login instead of leaving the page at 401.
+// 页面数据加载统一入口：没有会话就先登录；请求失败原样抛给页面提示，不做自动重试。
 function withLogin(action) {
-  return ensureLogin().then(() => {
-    return action()
-  }).catch((error) => {
-    if (!error || error.code !== 401) throw error
-    return login().then(() => action())
-  })
+  return ensureLogin().then(() => action())
 }
 
-function logout() {
-  request.clearToken()
-  storage.remove(USER_KEY)
-}
-
-module.exports = { getUser, login, ensureLogin, withLogin, logout }
+module.exports = { login, ensureLogin, withLogin }

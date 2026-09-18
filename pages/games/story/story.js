@@ -75,7 +75,8 @@ Component({
       const choiceId = event.currentTarget.dataset.choiceId
       if (!choiceId || this.data.submitting || !this.data.state || this.data.state.finished || this.data.state.gameOver) return
       this.setData({ submitting: true })
-      const idempotencyKey = `story-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      // 幂等键由"当前场景 + 选项"唯一决定：同一场景重试同一选择会命中服务端去重。
+      const idempotencyKey = `story-${this.data.state.sceneId}-${choiceId}`
       gameService.submitGameEvent('story', {
         type: 'story_choice',
         payload: { choiceId },

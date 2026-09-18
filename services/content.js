@@ -4,9 +4,7 @@ const { resolveAssetUrl } = require('../utils/assets')
 function getFrogs() {
   return request.request({ url: '/v1/content/frogs' }).then((data) => ({
     ...data,
-    items: Array.isArray(data.items)
-      ? data.items.map((frog) => ({ ...frog, assetUrl: resolveAssetUrl(frog.assetUrl) }))
-      : [],
+    items: data.items.map((frog) => ({ ...frog, assetUrl: resolveAssetUrl(frog.assetUrl) })),
   }))
 }
 

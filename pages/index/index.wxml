@@ -7,7 +7,7 @@
     <view class="brand surface">
       <view class="brand__name">{{summary.brand}}</view>
       <view class="brand__slogan">{{summary.slogan}}</view>
-      <view class="brand__note">一场关于剪纸、说部与长白山林蛙的文化探索</view>
+      <view class="brand__note">一场关于说部与长白山林蛙的文化探索</view>
     </view>
 
     <view class="fund surface" bindtap="openWelfare">
@@ -60,7 +60,7 @@
         <text class="section-title__sub" bindtap="openRankings">查看榜单 ></text>
       </view>
       <view wx:for="{{summary.activity}}" wx:key="*this" class="activity__item">{{item}}</view>
-      <view wx:if="{{summary.activity.length === 0}}" class="empty-state">蛙友动态开发中</view>
+      <view wx:if="{{summary.activity.length === 0}}" class="empty-state">还没有蛙友解锁徽章，快去挑战吧</view>
     </view>
 
     <view class="section home-actions">

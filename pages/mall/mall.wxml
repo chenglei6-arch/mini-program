@@ -1,0 +1,32 @@
+<app-navigation-bar title="商城" back="{{false}}" color="#24342D" background="#F7F4EC"></app-navigation-bar>
+
+<scroll-view class="page" scroll-y refresher-enabled="{{true}}" refresher-triggered="{{refreshing}}" bindrefresherrefresh="loadProducts">
+  <view wx:if="{{loading}}" class="empty-state">正在加载商品...</view>
+
+  <block wx:if="{{!loading}}">
+    <view class="section">
+      <view class="section-title">
+        <text class="section-title__main">盲盒好物</text>
+        <text class="section-title__sub" bindtap="openOrders">我的订单 ></text>
+      </view>
+      <view wx:if="{{products.length === 0}}" class="surface empty-state">商城商品准备中</view>
+      <view wx:for="{{products}}" wx:key="id" class="product-card surface" data-id="{{item.id}}" bindtap="openProduct">
+        <view class="product-card__media">
+          <image wx:if="{{item.imageUrl}}" class="product-card__image" src="{{item.imageUrl}}" mode="aspectFill"></image>
+          <view wx:else class="product-card__placeholder">
+            <view class="product-card__seal">盲盒</view>
+          </view>
+        </view>
+        <view class="product-card__body">
+          <view class="product-card__name">{{item.name}}</view>
+          <view wx:if="{{item.subtitle}}" class="product-card__subtitle">{{item.subtitle}}</view>
+          <view wx:if="{{item.description}}" class="product-card__desc">{{item.description}}</view>
+          <view class="product-card__footer">
+            <view wx:if="{{item.priceText}}" class="product-card__price">¥ {{item.priceText}}</view>
+            <view class="product-card__action">立即下单 ></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+</scroll-view>

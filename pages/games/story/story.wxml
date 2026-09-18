@@ -15,12 +15,9 @@
       <view class="narrative__eyebrow">{{state.speaker}} · {{state.sceneId}}</view>
       <view class="narrative__title">{{state.sceneTitle}}</view>
       <view class="narrative__body" bindtap="revealAll">
-        <block wx:if="{{state.sceneParagraphs && state.sceneParagraphs.length}}">
-          <block wx:for="{{state.sceneParagraphs}}" wx:key="*this">
-            <view wx:if="{{index < revealed}}" class="narrative__paragraph">{{item}}</view>
-          </block>
+        <block wx:for="{{state.sceneParagraphs}}" wx:key="*this">
+          <view wx:if="{{index < revealed}}" class="narrative__paragraph">{{item}}</view>
         </block>
-        <text wx:else>{{state.sceneText}}</text>
         <view wx:if="{{typing}}" class="narrative__skip">轻触正文跳过</view>
       </view>
 
