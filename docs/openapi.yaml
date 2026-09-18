@@ -276,7 +276,7 @@ components:
       required: true
       schema:
         type: string
-        enum: [paper-cutting, story, guardian, forest-quiz]
+        enum: [story, guardian, forest-quiz]
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -373,7 +373,7 @@ components:
           maxLength: 512
     TokenData:
       type: object
-      required: [accessToken, expiresIn, refreshToken, refreshExpiresIn, user]
+      required: [accessToken, expiresIn, user]
       properties:
         accessToken:
           type: string
@@ -381,12 +381,6 @@ components:
           type: integer
           format: int64
           example: 7200
-        refreshToken:
-          type: string
-        refreshExpiresIn:
-          type: integer
-          format: int64
-          example: 2592000
         user:
           $ref: '#/components/schemas/User'
     TokenResponse:
@@ -399,7 +393,7 @@ components:
               $ref: '#/components/schemas/TokenData'
     User:
       type: object
-      required: [id, nickname, avatarUrl, isGuest]
+      required: [id, nickname, avatarUrl]
       properties:
         id:
           type: string
@@ -407,8 +401,6 @@ components:
           type: string
         avatarUrl:
           type: string
-        isGuest:
-          type: boolean
     GameCard:
       type: object
       required: [id, title, subtitle, path]
@@ -424,7 +416,7 @@ components:
           type: string
     Frog:
       type: object
-      required: [id, name, shortName, pattern, blessing, assetUrl, sourceUrl, unlocked]
+      required: [id, name, shortName, pattern, blessing, assetUrl, unlocked]
       properties:
         id:
           type: string
@@ -437,9 +429,6 @@ components:
         blessing:
           type: string
         assetUrl:
-          type: string
-          format: uri-reference
-        sourceUrl:
           type: string
           format: uri-reference
         unlocked:
@@ -477,7 +466,7 @@ components:
                 $ref: '#/components/schemas/FrogDetailSection'
     HomeSummary:
       type: object
-      required: [brand, slogan, fundAmount, fundUpdateAt, games, frogs, patterns, activity]
+      required: [brand, slogan, fundAmount, games, frogs, activity]
       properties:
         brand:
           type: string
@@ -486,9 +475,6 @@ components:
         fundAmount:
           type: string
           example: '12,480.00'
-        fundUpdateAt:
-          type: string
-          format: date-time
         games:
           type: array
           items:
@@ -497,12 +483,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Frog'
-        patterns:
-          type: array
-          items:
-            type: string
         activity:
           type: array
+          description: 只包含真实的徽章解锁流水，没有解锁时为空数组。
           items:
             type: string
     HomeSummaryResponse:
@@ -515,15 +498,12 @@ components:
               $ref: '#/components/schemas/HomeSummary'
     ProfileStats:
       type: object
-      required: [frogs, frogsTotal, patterns, patternsTotal, badges, badgesTotal, contribution]
+      required: [frogs, frogsTotal, badges, badgesTotal]
       properties:
         frogs: { type: integer, minimum: 0 }
         frogsTotal: { type: integer, minimum: 0 }
-        patterns: { type: integer, minimum: 0 }
-        patternsTotal: { type: integer, minimum: 0 }
         badges: { type: integer, minimum: 0 }
         badgesTotal: { type: integer, minimum: 0 }
-        contribution: { type: string, example: '1.00' }
     Badge:
       type: object
       required: [id, name, level, unlocked]
@@ -534,26 +514,15 @@ components:
           type: string
           enum: [bronze, silver, gold]
         unlocked: { type: boolean }
-    OrderSummary:
-      type: object
-      required: [id, status, amount, createdAt]
-      properties:
-        id: { type: string }
-        status: { type: string }
-        amount: { type: string }
-        createdAt: { type: string, format: date-time }
     ProfileData:
       type: object
-      required: [user, stats, badges, orders]
+      required: [user, stats, badges]
       properties:
         user: { $ref: '#/components/schemas/User' }
         stats: { $ref: '#/components/schemas/ProfileStats' }
         badges:
           type: array
           items: { $ref: '#/components/schemas/Badge' }
-        orders:
-          type: array
-          items: { $ref: '#/components/schemas/OrderSummary' }
     ProfileResponse:
       allOf:
         - $ref: '#/components/schemas/ResponseMeta'
@@ -586,7 +555,7 @@ components:
       properties:
         gameId:
           type: string
-          enum: [paper-cutting, story, guardian, forest-quiz, frog-puzzle]
+          enum: [story, guardian, forest-quiz]
         completed:
           type: integer
           minimum: 0
@@ -618,7 +587,7 @@ components:
       properties:
         type:
           type: string
-          enum: [started, progressed, completed, unlocked, answered, story_choice, reset, draw, answer, share]
+          enum: [story_choice, reset, draw, answer, share]
         payload:
           type: object
           additionalProperties: true
@@ -672,14 +641,12 @@ components:
             data: { $ref: '#/components/schemas/UnlockRedeemResult' }
     RankingItem:
       type: object
-      required: [rank, userId, nickname, avatarUrl, score, contribution]
+      required: [rank, userId, nickname, score]
       properties:
         rank: { type: integer, minimum: 1 }
         userId: { type: string }
         nickname: { type: string }
-        avatarUrl: { type: string }
         score: { type: integer, minimum: 0 }
-        contribution: { type: string }
     RankingData:
       type: object
       required: [type, updatedAt, items, page, size, total]
@@ -690,9 +657,10 @@ components:
           type: array
           items: { $ref: '#/components/schemas/RankingItem' }
         myRank:
-          allOf:
-            - $ref: '#/components/schemas/RankingItem'
+          type: integer
+          minimum: 1
           nullable: true
+          description: 当前用户的名次；没有徽章的用户不上榜，字段被省略。
         page: { type: integer, minimum: 1 }
         size: { type: integer, minimum: 1 }
         total: { type: integer, minimum: 0 }

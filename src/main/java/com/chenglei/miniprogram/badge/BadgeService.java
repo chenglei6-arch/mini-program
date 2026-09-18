@@ -1,16 +1,13 @@
 package com.chenglei.miniprogram.badge;
 
-import com.chenglei.miniprogram.common.db.RowValues;
 import com.chenglei.miniprogram.common.storage.GameProgressStore;
 import com.chenglei.miniprogram.guardian.GuardianGameMapper;
-import com.chenglei.miniprogram.integration.ContentCatalogService;
 import com.chenglei.miniprogram.puzzle.FrogPuzzleStateJson;
 import com.chenglei.miniprogram.quiz.ForestQuizMapper;
 import com.chenglei.miniprogram.quiz.QuizStateJson;
 import com.chenglei.miniprogram.story.StoryStateJson;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,32 +15,16 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 /**
- * 全站徽章解锁判定：从各游戏进度推导当前应解锁的徽章，落 user_badge 流水。
+ * 全站徽章解锁判定：按 {@link BadgeCatalog} 的条件逐一评估各游戏进度，落 user_badge 流水。
  * 触发时机：个人资料读取、守护神答题、剧情选择、拼图完成、闯关答题。
  *
  * 跨模块读取约定：剧情/拼图/闯关的进度 JSON 一律经对方的 *StateJson 组件解析
  * （字段名留在所属模块）；守护神/闯关的表状数据直接读 Mapper。不依赖对方
  * Service，避免与"事件后回调 evaluate"的调用方形成循环依赖。
- *
- * 口径说明：需求中"剪纸匠人/剪纸大师（5 款纹样各 N 次）"在游戏实现里对应
- * 完成不同林蛙的拼贴，因此以完成蛙数 1/5/9 作为三档剪纸徽章条件；
- * "说部守护者（付费解锁 3-5 章并通关）"暂以剧情全通关（finished）兜底，
- * 待付费层落地后再收紧条件。
  */
 @Service
 public class BadgeService {
 
-    /** 剪纸徽章三档对应的完成蛙数。 */
-    private static final Map<String, Integer> PAPER_FROG_REQUIREMENT = Map.of(
-        "paper-beginner", 1, "paper-craftsman", 5, "paper-master", 9);
-    private static final Map<String, Integer> GUARDIAN_REQUIREMENT = Map.of(
-        "guardian-first", 1, "guardian-messenger", 3, "guardian-nine", 9);
-    /** 闯关徽章与关卡 id 一一对应。 */
-    private static final Map<String, String> QUIZ_LEVEL_REQUIREMENT = Map.of(
-        "quiz-morphology", "morphology", "quiz-distribution", "distribution", "quiz-diet", "diet",
-        "quiz-hibernation", "hibernation", "quiz-reproduction", "reproduction", "quiz-protection", "protection");
-
-    private final ContentCatalogService content;
     private final GameProgressStore store;
     private final GuardianGameMapper guardianMapper;
     private final ForestQuizMapper quizMapper;
@@ -51,11 +32,11 @@ public class BadgeService {
     private final StoryStateJson storyStateJson;
     private final FrogPuzzleStateJson puzzleStateJson;
     private final QuizStateJson quizStateJson;
+    private final BadgeCatalog catalog;
 
-    public BadgeService(ContentCatalogService content, GameProgressStore store,
-        GuardianGameMapper guardianMapper, ForestQuizMapper quizMapper, UserBadgeMapper userBadges,
-        StoryStateJson storyStateJson, FrogPuzzleStateJson puzzleStateJson, QuizStateJson quizStateJson) {
-        this.content = content;
+    public BadgeService(GameProgressStore store, GuardianGameMapper guardianMapper, ForestQuizMapper quizMapper,
+        UserBadgeMapper userBadges, StoryStateJson storyStateJson, FrogPuzzleStateJson puzzleStateJson,
+        QuizStateJson quizStateJson, BadgeCatalog catalog) {
         this.store = store;
         this.guardianMapper = guardianMapper;
         this.quizMapper = quizMapper;
@@ -63,6 +44,7 @@ public class BadgeService {
         this.storyStateJson = storyStateJson;
         this.puzzleStateJson = puzzleStateJson;
         this.quizStateJson = quizStateJson;
+        this.catalog = catalog;
     }
 
     public record Evaluation(List<Map<String, Object>> badges, List<Map<String, Object>> newlyUnlocked) { }
@@ -73,21 +55,20 @@ public class BadgeService {
      */
     public Evaluation evaluate(String userId) {
         Map<String, Boolean> conditions = conditions(userId);
-        List<Map<String, Object>> catalog = content.badges();
         Map<String, Instant> unlocked = unlockedAt(userId);
 
         List<Map<String, Object>> badges = new ArrayList<>();
         List<Map<String, Object>> newly = new ArrayList<>();
-        for (Map<String, Object> item : catalog) {
-            String badgeId = String.valueOf(item.get("id"));
-            Map<String, Object> entry = new LinkedHashMap<>(item);
-            Instant at = unlocked.get(badgeId);
-            boolean satisfies = Boolean.TRUE.equals(conditions.getOrDefault(badgeId, false));
-            if (at == null && satisfies) {
-                userBadges.insertUnlock(userId, badgeId);
+        for (BadgeCatalog.Badge badge : catalog.all()) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("id", badge.id());
+            entry.put("name", badge.name());
+            entry.put("level", badge.level());
+            Instant at = unlocked.get(badge.id());
+            if (at == null && Boolean.TRUE.equals(conditions.get(badge.id()))) {
+                userBadges.insertUnlock(userId, badge.id());
                 at = Instant.now();
-                newly.add(Map.of("id", badgeId, "name", String.valueOf(item.get("name")),
-                    "level", String.valueOf(item.get("level"))));
+                newly.add(Map.of("id", badge.id(), "name", badge.name(), "level", badge.level()));
             }
             entry.put("unlocked", at != null);
             entry.put("unlockedAt", at);
@@ -97,48 +78,39 @@ public class BadgeService {
     }
 
     private Map<String, Boolean> conditions(String userId) {
-        Map<String, Boolean> conditions = new HashMap<>();
-
         int completedFrogs = puzzleStateJson.completedFrogCount(store.loadState(userId, "frog-puzzle"));
-        boolean paperCuttingDone = paperCuttingCompleted(userId);
-        PAPER_FROG_REQUIREMENT.forEach((badgeId, required) -> conditions.put(badgeId,
-            completedFrogs >= required || (required == 1 && paperCuttingDone)));
-
         String storyState = store.loadState(userId, "story");
-        conditions.put("story-listener", storyStateJson.completedRouteCount(storyState) >= 1);
-        conditions.put("story-inheritor", storyStateJson.completedRouteCount(storyState) >= 2);
-        conditions.put("story-guardian", storyStateJson.finished(storyState));
-
-        int collectionCount = guardianMapper.selectCollectedFrogIds(userId).size();
-        GUARDIAN_REQUIREMENT.forEach((badgeId, required) -> conditions.put(badgeId, collectionCount >= required));
-
+        int completedRoutes = storyStateJson.completedRouteCount(storyState);
+        boolean storyFinished = storyStateJson.finished(storyState);
+        int collectedGuardians = guardianMapper.selectCollectedFrogIds(userId).size();
         List<String> quizLevels = quizCompletedLevels(userId);
-        QUIZ_LEVEL_REQUIREMENT.forEach((badgeId, levelId) -> conditions.put(badgeId, quizLevels.contains(levelId)));
 
+        Map<String, Boolean> conditions = new HashMap<>();
+        for (BadgeCatalog.Badge badge : catalog.all()) {
+            BadgeCatalog.Condition condition = badge.condition();
+            conditions.put(badge.id(), switch (condition.type()) {
+                case "frogs" -> completedFrogs >= condition.count();
+                case "story-routes" -> completedRoutes >= condition.count();
+                case "story-finished" -> storyFinished;
+                case "guardian" -> collectedGuardians >= condition.count();
+                case "quiz-level" -> quizLevels.contains(condition.levelId());
+                default -> throw new IllegalStateException("未知徽章条件类型：" + condition.type());
+            });
+        }
         return conditions;
     }
 
     private Map<String, Instant> unlockedAt(String userId) {
         Map<String, Instant> result = new HashMap<>();
-        for (Map<String, Object> row : userBadges.selectByUser(userId)) {
-            Object at = RowValues.valueOf(row, "unlockedAt");
-            if (at instanceof Date date) {
-                result.put(String.valueOf(row.get("badgeId")), date.toInstant());
-            } else if (at instanceof Instant instant) {
-                result.put(String.valueOf(row.get("badgeId")), instant);
-            }
+        for (UserBadgeMapper.UserBadgeRow row : userBadges.selectByUser(userId)) {
+            result.put(row.getBadgeId(), row.getUnlockedAt());
         }
         return result;
-    }
-
-    private boolean paperCuttingCompleted(String userId) {
-        // 完成标记在 game_progress.completed 列上，无需解析状态 JSON。
-        return store.isCompleted(userId, "paper-cutting");
     }
 
     private List<String> quizCompletedLevels(String userId) {
         Map<String, Object> row = quizMapper.selectProgress(userId);
         if (row == null) return List.of();
-        return quizStateJson.completedLevelIds(String.valueOf(row.get("completedLevelsJson")));
+        return quizStateJson.completedLevelIds((String) row.get("completedLevelsJson"));
     }
 }

@@ -22,7 +22,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@SpringBootTest(properties = "app.content.include-test-data=true")
+@SpringBootTest(properties = {
+    "app.content.include-test-data=true",
+    // 测试环境不连微信：必须显式声明开发登录 openid，否则登录接口会按未配置凭据直接报错。
+    "app.auth.dev-openid=dev-local-user"
+})
 @AutoConfigureMockMvc
 class MiniProgramBackendApplicationTests {
 
@@ -47,8 +51,8 @@ class MiniProgramBackendApplicationTests {
         jdbcTemplate.update("DELETE FROM game_progress");
         jdbcTemplate.update("DELETE FROM game_event");
         jdbcTemplate.update("DELETE FROM user_badge");
+        jdbcTemplate.update("DELETE FROM mall_order");
         jdbcTemplate.update("UPDATE unlock_code SET status='unused', redeemed_by=NULL, redeemed_at=NULL");
-        jdbcTemplate.update("DELETE FROM unlock_record");
     }
 
     @Test
@@ -81,14 +85,9 @@ class MiniProgramBackendApplicationTests {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.code").value("COMMON_404"));
 
-        org.junit.jupiter.api.Assertions.assertEquals(1, countUnlockRecords());
+        // 核销结果落在 unlock_code 上（redeemed_by/redeemed_at），不再另有审计表。
         org.junit.jupiter.api.Assertions.assertEquals("redeemed", jdbcTemplate.queryForObject(
             "SELECT status FROM unlock_code WHERE code = 'PAPER-FROG-2026-0002'", String.class));
-    }
-
-    private int countUnlockRecords() {
-        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM unlock_record", Integer.class);
-        return count == null ? 0 : count;
     }
 
     @Test
@@ -122,7 +121,7 @@ class MiniProgramBackendApplicationTests {
 
         mockMvc.perform(get("/v1/home/summary").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.brand").value("纸韵蛙鸣·哈什蚂传奇"))
+            .andExpect(jsonPath("$.data.brand").value("蛙声说部·哈什蚂传奇"))
             .andExpect(jsonPath("$.data.games").isArray())
             .andExpect(jsonPath("$.data.frogs[0].assetUrl").value("/assets/frogs/forest.png"));
 
@@ -141,16 +140,12 @@ class MiniProgramBackendApplicationTests {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.name").value("冬眠蛙"))
             .andExpect(jsonPath("$.data.assetUrl").value("/assets/frogs/hibernation.png"))
-            .andExpect(jsonPath("$.data.sourceUrl").value("/assets/sources/frogs/hibernation.docx"))
             .andExpect(jsonPath("$.data.sections[0].heading").value("一、整体构图"))
             .andExpect(jsonPath("$.data.sections[0].paragraphs[0]").isString());
 
         mockMvc.perform(get("/assets/frogs/forest.png"))
             .andExpect(status().isOk())
             .andExpect(content().contentType("image/png"));
-
-        mockMvc.perform(get("/assets/sources/frogs/hibernation.docx"))
-            .andExpect(status().isOk());
 
         mockMvc.perform(get("/v1/me/profile").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk())
@@ -178,14 +173,10 @@ class MiniProgramBackendApplicationTests {
             .andExpect(jsonPath("$.data.updatedAt").isNotEmpty())
             .andExpect(jsonPath("$.data.myRank").doesNotExist());
 
-        mockMvc.perform(post("/v1/games/paper-cutting/events")
-                .header("Authorization", "Bearer " + token)
-                .header("Idempotency-Key", "local-test-event-001")
-                .contentType("application/json")
-                .content("{\"type\":\"completed\"}"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.accepted").value(true))
-            .andExpect(jsonPath("$.data.progress.finished").value(true));
+        // 未登记的游戏直接 404，不再有通用进度兜底。
+        mockMvc.perform(get("/v1/games/paper-cutting/progress").header("Authorization", "Bearer " + token))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("COMMON_404"));
     }
 
     @Test
@@ -233,8 +224,7 @@ class MiniProgramBackendApplicationTests {
                 .contentType("application/json")
                 .content("{\"nickname\":\"联调用户\"}"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.nickname").value("联调用户"))
-            .andExpect(jsonPath("$.data.isGuest").value(false));
+            .andExpect(jsonPath("$.data.nickname").value("联调用户"));
     }
 
     @Test
@@ -258,7 +248,10 @@ class MiniProgramBackendApplicationTests {
                 .content("{\"type\":\"story_choice\",\"payload\":{\"choiceId\":\"A\"}}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.state.sceneId").value("soul"))
-            .andExpect(jsonPath("$.data.state.currentRoute").value("A"));
+            // 路线等判定依据留在服务端状态里，不下发到响应。
+            .andExpect(jsonPath("$.data.state.currentRoute").doesNotExist())
+            .andExpect(jsonPath("$.data.state.sceneTitle").value("支线 S · 迷途寻访者亡魂"))
+            .andExpect(jsonPath("$.data.state.choices[0].id").value("S-1"));
 
         mockMvc.perform(post("/v1/games/story/events")
                 .header("Authorization", "Bearer " + token)
@@ -526,6 +519,76 @@ class MiniProgramBackendApplicationTests {
         mockMvc.perform(get("/v1/home/summary").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.activity[0]").value(org.hamcrest.Matchers.containsString("解锁了")));
+    }
+
+    @Test
+    void mallSupportsBlindBoxOrderingWithIdempotency() throws Exception {
+        String token = loginToken("mall-test-code");
+
+        // 商品目录来自 mall_product 表，启动时空表会补入唯一的正式商品。
+        mockMvc.perform(get("/v1/mall/products").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.items[0].id").value("paper-cut-blindbox"))
+            .andExpect(jsonPath("$.data.items[0].priceCents").value(2990));
+
+        String orderBody = "{\"productId\":\"paper-cut-blindbox\",\"quantity\":2,"
+            + "\"receiverName\":\"联调用户\",\"receiverPhone\":\"13800138000\","
+            + "\"receiverAddress\":\"吉林省长春市净月区测试路 1 号\"}";
+
+        MvcResult firstOrder = mockMvc.perform(post("/v1/mall/orders")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "mall-order-001")
+                .contentType("application/json")
+                .content(orderBody))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.status").value("PENDING_PAYMENT"))
+            .andExpect(jsonPath("$.data.totalCents").value(5980))
+            .andExpect(jsonPath("$.data.orderNo").isString())
+            .andReturn();
+        String orderNo = objectMapper.readTree(firstOrder.getResponse().getContentAsString())
+            .path("data").path("orderNo").asText();
+
+        // 同一幂等键重放返回同一订单，不重复建单。
+        mockMvc.perform(post("/v1/mall/orders")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "mall-order-001")
+                .contentType("application/json")
+                .content(orderBody))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.orderNo").value(orderNo));
+        org.junit.jupiter.api.Assertions.assertEquals(1, countMallOrders());
+
+        // 商品不存在返回 404；收货手机号不合法返回 400。
+        mockMvc.perform(post("/v1/mall/orders")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "mall-order-002")
+                .contentType("application/json")
+                .content("{\"productId\":\"no-such-product\",\"quantity\":1,"
+                    + "\"receiverName\":\"联调用户\",\"receiverPhone\":\"13800138000\",\"receiverAddress\":\"地址\"}"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.code").value("COMMON_404"));
+
+        mockMvc.perform(post("/v1/mall/orders")
+                .header("Authorization", "Bearer " + token)
+                .header("Idempotency-Key", "mall-order-003")
+                .contentType("application/json")
+                .content("{\"productId\":\"paper-cut-blindbox\",\"quantity\":1,"
+                    + "\"receiverName\":\"联调用户\",\"receiverPhone\":\"123\",\"receiverAddress\":\"地址\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("COMMON_400"));
+        org.junit.jupiter.api.Assertions.assertEquals(1, countMallOrders());
+
+        mockMvc.perform(get("/v1/mall/orders").header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.total").value(1))
+            .andExpect(jsonPath("$.data.items[0].orderNo").value(orderNo))
+            .andExpect(jsonPath("$.data.items[0].productName").value("林小蛙剪纸盲盒"))
+            .andExpect(jsonPath("$.data.items[0].createdAt").isNotEmpty());
+    }
+
+    private int countMallOrders() {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM mall_order", Integer.class);
+        return count == null ? 0 : count;
     }
 
     private int countUserBadges() {

@@ -1,11 +1,11 @@
 # Mini Program Backend
 
-建行杯小程序后端基础工程，使用 Java 21、Spring Boot 3.4、MyBatis-Plus、MySQL、Redis 和 Flyway。
+建行杯小程序后端基础工程，使用 Java 21、Spring Boot 3.4、MyBatis-Plus、MySQL 和 Flyway。
 
 ## 本地启动
 
 1. 将 `.env.example` 复制为 `.env` 并修改本地密码。
-2. 安装 Docker Desktop 后执行 `docker compose up -d mysql redis`。
+2. 安装 Docker Desktop 后执行 `docker compose up -d mysql`。
 3. 执行 `./mvnw spring-boot:run`，Windows 使用 `mvnw.cmd spring-boot:run`。
 4. 访问 `http://localhost:8080/v1/system/ping` 验证服务。
 

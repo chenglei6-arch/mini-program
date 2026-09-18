@@ -37,12 +37,6 @@ public class FrogPuzzleController {
         return ApiResponse.success(puzzleService.componentsFor(frogId));
     }
 
-    @GetMapping("/user/components")
-    public ApiResponse<Map<String, Object>> getUserUnlockedComponents(Authentication authentication) {
-        getUser(authentication);
-        return ApiResponse.success(puzzleService.unlockedComponents());
-    }
-
     @PostMapping("/events")
     public ApiResponse<Map<String, Object>> handleEvent(Authentication authentication,
         @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,

@@ -26,8 +26,7 @@ public class AuthController {
     @PostMapping("/wechat-login")
     public ApiResponse<TokenData> login(@Valid @RequestBody LoginRequest request) {
         SessionService.Session session = sessions.login(request.code(), request.nickname(), request.avatarUrl());
-        return ApiResponse.success(new TokenData(session.accessToken(), accessTokenTtlSeconds, null, 0,
-            session.user()));
+        return ApiResponse.success(new TokenData(session.accessToken(), accessTokenTtlSeconds, session.user()));
     }
 
     public record LoginRequest(
@@ -36,6 +35,6 @@ public class AuthController {
         @Size(max = 512) String avatarUrl
     ) { }
 
-    public record TokenData(String accessToken, long expiresIn, String refreshToken, long refreshExpiresIn,
-                            CurrentUser user) { }
+    /** 到期后由小程序重新 wx.login 换新 token；没有刷新令牌这一层。 */
+    public record TokenData(String accessToken, long expiresIn, CurrentUser user) { }
 }

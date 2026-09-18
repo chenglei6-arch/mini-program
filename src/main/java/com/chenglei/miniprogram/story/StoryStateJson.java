@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
  *
  * BadgeService 等外部消费方也通过本组件解析进度 JSON，
  * 避免把 StoryState 的字段名耦合扩散到其他模块。
+ * 进度 JSON 损坏时直接抛错，不按空进度继续。
  */
 @Component
 public class StoryStateJson {
@@ -49,27 +50,27 @@ public class StoryStateJson {
         try {
             return objectMapper.readTree(payloadJson).path("choiceId").asText(null);
         } catch (Exception e) {
-            return null;
+            throw new IllegalStateException("故事事件反序列化失败", e);
         }
     }
 
-    /** 已完成路线数，供徽章判定使用；进度不存在或格式异常时按 0 处理。 */
+    /** 已完成路线数，供徽章判定使用；还没有进度时按 0 条处理。 */
     public int completedRouteCount(String stateJson) {
         if (stateJson == null || stateJson.isBlank()) return 0;
         try {
             return objectMapper.readTree(stateJson).path("completedRoutes").size();
         } catch (Exception e) {
-            return 0;
+            throw new IllegalStateException("故事进度读取失败", e);
         }
     }
 
-    /** 剧情是否已通关（到达结局），供徽章判定使用。 */
+    /** 剧情是否已通关（到达结局），供徽章判定使用；还没有进度时按未通关处理。 */
     public boolean finished(String stateJson) {
         if (stateJson == null || stateJson.isBlank()) return false;
         try {
             return objectMapper.readTree(stateJson).path("finished").asBoolean(false);
         } catch (Exception e) {
-            return false;
+            throw new IllegalStateException("故事进度读取失败", e);
         }
     }
 }

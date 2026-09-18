@@ -1,7 +1,6 @@
 package com.chenglei.miniprogram.integration;
 
 import com.chenglei.miniprogram.auth.CurrentUser;
-import com.chenglei.miniprogram.common.db.RowValues;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -42,9 +41,9 @@ public class RankingsService {
         for (Map<String, Object> row : rows) {
             items.add(Map.of(
                 "rank", rank++,
-                "userId", RowValues.string(row, "userId"),
-                "nickname", RowValues.string(row, "nickname"),
-                "score", (int) RowValues.number(row, "score")));
+                "userId", String.valueOf(row.get("userId")),
+                "nickname", String.valueOf(row.get("nickname")),
+                "score", ((Number) row.get("score")).intValue()));
         }
 
         Integer myRank = myRank(currentUser, weekly, weekStart);

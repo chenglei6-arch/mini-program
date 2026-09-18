@@ -1,7 +1,7 @@
 {
   "levels": [
     {
-      "id": "morphology", "title": "林蛙长什么样？", "topic": "形态特征", "badgeId": "quiz-morphology", "badgeName": "形态徽章",
+      "id": "morphology", "title": "林蛙长什么样？", "topic": "形态特征", "badgeId": "quiz-morphology",
       "knowledgePoints": ["东北林蛙属于无尾目蛙科林蛙属两栖动物，又称林蛙、蛤士蟆、雪蛤。", "体长约71—90毫米，头扁平，吻端钝圆。", "体色多变，背面皮肤较光滑，鼓膜部位有三角形黑斑。"],
       "questions": [
         {"id":"m1","prompt":"东北林蛙属于什么科？","options":[{"id":"a","text":"蛙科"},{"id":"b","text":"蟾蜍科"},{"id":"c","text":"树蛙科"}],"answerId":"a","explanation":"东北林蛙属于蛙科林蛙属。"},
@@ -10,7 +10,7 @@
       ]
     },
     {
-      "id": "distribution", "title": "林蛙住在哪？", "topic": "分布与栖息地", "badgeId": "quiz-distribution", "badgeName": "分布徽章",
+      "id": "distribution", "title": "林蛙住在哪？", "topic": "分布与栖息地", "badgeId": "quiz-distribution",
       "knowledgePoints": ["国内主要分布于黑龙江、吉林、辽宁和内蒙古东北部。", "国外分布于俄罗斯远东、蒙古东部、朝鲜、日本对马岛。", "喜欢阔叶林、针叶林和混交林中郁闭度大、落叶多、空气湿润的环境。"],
       "questions": [
         {"id":"d1","prompt":"吉林省内以下哪个地方有林蛙分布？","options":[{"id":"a","text":"长春"},{"id":"b","text":"吉林市"},{"id":"c","text":"四平"}],"answerId":"a","explanation":"长春属于吉林省内已知的林蛙分布地。"},
@@ -19,7 +19,7 @@
       ]
     },
     {
-      "id": "diet", "title": "林蛙吃什么？", "topic": "食性与生态价值", "badgeId": "quiz-diet", "badgeName": "食性徽章",
+      "id": "diet", "title": "林蛙吃什么？", "topic": "食性与生态价值", "badgeId": "quiz-diet",
       "knowledgePoints": ["林蛙是肉食性动物，主要捕食昆虫及其他小动物。", "每只野生林蛙每年可捕食昆虫3万只以上。", "林蛙被称为森林卫士，对防治病虫害、维持生态平衡很重要。"],
       "questions": [
         {"id":"e1","prompt":"林蛙的食性是什么？","options":[{"id":"a","text":"草食性"},{"id":"b","text":"肉食性"},{"id":"c","text":"杂食性"}],"answerId":"b","explanation":"林蛙主要捕食昆虫和其他小动物，是肉食性动物。"},
@@ -28,7 +28,7 @@
       ]
     },
     {
-      "id": "hibernation", "title": "林蛙怎么过冬？", "topic": "冬眠习性", "badgeId": "quiz-hibernation", "badgeName": "冬眠徽章",
+      "id": "hibernation", "title": "林蛙怎么过冬？", "topic": "冬眠习性", "badgeId": "quiz-hibernation",
       "knowledgePoints": ["冬眠期大致从11月末至翌年3月中下旬，林蛙会在水底冬眠。", "它们成群聚集在河水深处的大石块下，长白山林蛙可在雪地下冬眠100多天。", "林蛙可耐受—20℃，气温回升至10℃—15℃时解除冬眠。"],
       "questions": [
         {"id":"h1","prompt":"林蛙冬眠时在哪里？","options":[{"id":"a","text":"水底大石块下"},{"id":"b","text":"树梢上"},{"id":"c","text":"沙漠地表"}],"answerId":"a","explanation":"林蛙会成群躲在水底深处的大石块下冬眠。"},
@@ -37,7 +37,7 @@
       ]
     },
     {
-      "id": "reproduction", "title": "林蛙如何繁衍？", "topic": "繁殖与生命周期", "badgeId": "quiz-reproduction", "badgeName": "繁殖徽章",
+      "id": "reproduction", "title": "林蛙如何繁衍？", "topic": "繁殖与生命周期", "badgeId": "quiz-reproduction",
       "knowledgePoints": ["繁殖期为每年4月初至5月初，清明前后解冻出蛰。", "产卵多在静水塘或流溪水凼内，每个卵团含卵500—2300粒。", "从产卵到变态成为幼蛙约需60—70天。"],
       "questions": [
         {"id":"r1","prompt":"林蛙的繁殖期在什么时候？","options":[{"id":"a","text":"1月初至2月初"},{"id":"b","text":"4月初至5月初"},{"id":"c","text":"9月初至10月初"}],"answerId":"b","explanation":"林蛙通常在4月初至5月初繁殖。"},
@@ -46,7 +46,7 @@
       ]
     },
     {
-      "id": "protection", "title": "林蛙为什么重要？", "topic": "保护现状与产业价值", "badgeId": "quiz-protection", "badgeName": "保护徽章",
+      "id": "protection", "title": "林蛙为什么重要？", "topic": "保护现状与产业价值", "badgeId": "quiz-protection",
       "knowledgePoints": ["林蛙在IUCN红色名录中被评为近危（NT），也被列入中国濒危动物红皮书。", "林蛙是国家“三有”保护动物，具有重要生态、科学和社会价值。", "主要威胁包括滥捕乱捞、森林过度砍伐、工业废水以及农药化肥。"],
       "questions": [
         {"id":"p1","prompt":"IUCN红色名录中林蛙被评为哪个级别？","options":[{"id":"a","text":"无危（LC）"},{"id":"b","text":"近危（NT）"},{"id":"c","text":"灭绝（EX）"}],"answerId":"b","explanation":"东北林蛙在IUCN红色名录中被评为近危（NT）。"},

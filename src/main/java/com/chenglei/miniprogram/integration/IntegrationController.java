@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 前端契约接口。控制器只做三件事：参数校验、登录身份提取、按游戏分发到
  * 对应的服务；聚合与业务规则分别在 HomeService/ProfileService/RankingsService/
- * WelfareService/GameProgressService 和各游戏模块的 Service 中。
+ * WelfareService 和各游戏模块的 Service 中。
  */
 @RestController
 @RequestMapping("/v1")
@@ -41,15 +41,13 @@ public class IntegrationController {
     private final UnlockService unlockService;
     private final HomeService homeService;
     private final ProfileService profileService;
-    private final GameProgressService gameProgressService;
     private final RankingsService rankingsService;
     private final WelfareService welfareService;
 
     public IntegrationController(SessionService sessions, ContentCatalogService content,
         GuardianGameService guardianGameService, StoryGameService storyGameService,
         ForestQuizGameService forestQuizGameService, UnlockService unlockService, HomeService homeService,
-        ProfileService profileService, GameProgressService gameProgressService, RankingsService rankingsService,
-        WelfareService welfareService) {
+        ProfileService profileService, RankingsService rankingsService, WelfareService welfareService) {
         this.sessions = sessions;
         this.content = content;
         this.guardianGameService = guardianGameService;
@@ -58,7 +56,6 @@ public class IntegrationController {
         this.unlockService = unlockService;
         this.homeService = homeService;
         this.profileService = profileService;
-        this.gameProgressService = gameProgressService;
         this.rankingsService = rankingsService;
         this.welfareService = welfareService;
     }
@@ -96,20 +93,24 @@ public class IntegrationController {
     @GetMapping("/games/{gameId}/progress")
     public ApiResponse<Map<String, Object>> gameProgress(Authentication authentication,
         @PathVariable String gameId) {
-        if (gameId.equals("story")) return ApiResponse.success(storyGameService.progress(authentication));
-        if (gameId.equals("guardian")) return ApiResponse.success(guardianGameService.progress(user(authentication).id()));
-        if (gameId.equals("forest-quiz")) return ApiResponse.success(forestQuizGameService.progress(user(authentication).id()));
-        return ApiResponse.success(gameProgressService.progress(user(authentication).id(), gameId));
+        return ApiResponse.success(switch (gameId) {
+            case "story" -> storyGameService.progress(authentication);
+            case "guardian" -> guardianGameService.progress(user(authentication).id());
+            case "forest-quiz" -> forestQuizGameService.progress(user(authentication).id());
+            default -> throw new BusinessException(ErrorCode.NOT_FOUND, "游戏不存在");
+        });
     }
 
     @PostMapping("/games/{gameId}/events")
     public ApiResponse<Map<String, Object>> gameEvent(Authentication authentication, @PathVariable String gameId,
         @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
         @Valid @RequestBody GameEvent event) {
-        if (gameId.equals("story")) return ApiResponse.success(storyEvent(authentication, idempotencyKey, event));
-        if (gameId.equals("guardian")) return ApiResponse.success(guardianEvent(user(authentication).id(), idempotencyKey, event));
-        if (gameId.equals("forest-quiz")) return ApiResponse.success(quizEvent(user(authentication).id(), idempotencyKey, event));
-        return ApiResponse.success(gameProgressService.recordEvent(user(authentication).id(), gameId, event.type()));
+        return ApiResponse.success(switch (gameId) {
+            case "story" -> storyEvent(authentication, idempotencyKey, event);
+            case "guardian" -> guardianEvent(user(authentication).id(), idempotencyKey, event);
+            case "forest-quiz" -> quizEvent(user(authentication).id(), idempotencyKey, event);
+            default -> throw new BusinessException(ErrorCode.NOT_FOUND, "游戏不存在");
+        });
     }
 
     @PostMapping("/unlocks/redeem")

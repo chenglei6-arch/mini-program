@@ -12,11 +12,12 @@ import org.apache.ibatis.annotations.Update;
 /**
  * app_user / user_session 访问：登录建户、会话签发与校验、资料修改。
  * user_session 只存 token 的 SHA-256 摘要，明文 token 仅在登录响应中出现一次。
+ * 列别名一律加引号，保证 H2 与 MySQL 返回的 Map key 都是契约字段名。
  */
 @Mapper
 public interface UserAuthMapper {
 
-    @Select("SELECT id, openid, nickname, avatar_url AS avatarUrl, status FROM app_user WHERE openid=#{openid}")
+    @Select("SELECT id, openid, nickname, avatar_url AS \"avatarUrl\", status FROM app_user WHERE openid=#{openid}")
     Map<String, Object> selectByOpenid(@Param("openid") String openid);
 
     @Insert("INSERT INTO app_user (openid, unionid, nickname, avatar_url) "
@@ -28,7 +29,7 @@ public interface UserAuthMapper {
         + "WHERE openid=#{openid} AND (unionid IS NULL OR unionid <> #{unionid})")
     int updateUnionid(@Param("openid") String openid, @Param("unionid") String unionid);
 
-    @Select("SELECT id, nickname, avatar_url AS avatarUrl FROM app_user "
+    @Select("SELECT id, nickname, avatar_url AS \"avatarUrl\" FROM app_user "
         + "WHERE id=#{userId} AND status=1 AND deleted=0")
     Map<String, Object> selectById(@Param("userId") long userId);
 
@@ -44,8 +45,8 @@ public interface UserAuthMapper {
     int insertSession(@Param("tokenHash") String tokenHash, @Param("userId") long userId,
         @Param("expiresAt") Instant expiresAt);
 
-    @Select("SELECT s.user_id AS userId, u.nickname AS nickname, u.avatar_url AS avatarUrl "
-        + "FROM user_session s JOIN app_user u ON u.id=s.user_id "
+    @Select("SELECT s.user_id AS \"userId\", u.nickname AS \"nickname\", "
+        + "u.avatar_url AS \"avatarUrl\" FROM user_session s JOIN app_user u ON u.id=s.user_id "
         + "WHERE s.token_hash=#{tokenHash} AND s.expires_at > CURRENT_TIMESTAMP(3) "
         + "AND u.status=1 AND u.deleted=0")
     Map<String, Object> selectSessionUser(@Param("tokenHash") String tokenHash);

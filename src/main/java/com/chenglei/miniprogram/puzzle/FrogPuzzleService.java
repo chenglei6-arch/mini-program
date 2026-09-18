@@ -70,13 +70,6 @@ public class FrogPuzzleService {
         return response;
     }
 
-    public Map<String, Object> unlockedComponents() {
-        Map<String, Object> response = new HashMap<>();
-        response.put("components", allComponentIds);
-        response.put("total", allComponentIds.size());
-        return response;
-    }
-
     @Transactional
     public Map<String, Object> handleEvent(String userId, String idempotencyKey, String eventType,
         PuzzleEventPayload payload) {
@@ -173,7 +166,9 @@ public class FrogPuzzleService {
             }
             allComponentIds = componentIds;
         } catch (IOException e) {
-            frogComponents = new HashMap<>();
+            // 与其他资源加载保持一致：组件清单缺失应让启动失败，而不是让所有接口
+            // 静默返回"青蛙不存在"。
+            throw new IllegalStateException("拼图组件加载失败", e);
         }
     }
 

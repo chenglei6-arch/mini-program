@@ -1,7 +1,7 @@
 package com.chenglei.miniprogram.guardian;
 
+import com.chenglei.miniprogram.badge.BadgeCatalog;
 import com.chenglei.miniprogram.badge.BadgeService;
-import com.chenglei.miniprogram.common.db.RowValues;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
 import com.chenglei.miniprogram.integration.ContentCatalogService;
@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,23 +31,20 @@ public class GuardianGameService {
     private static final ZoneId GAME_ZONE = ZoneId.of("Asia/Shanghai");
     private static final int DAILY_FREE_DRAWS = 3;
     private static final int SHARE_BONUS_DRAWS = 1;
-    private static final List<GuardianBadge> GUARDIAN_BADGES = List.of(
-        new GuardianBadge("guardian-first", "守护神初遇", "bronze", 1),
-        new GuardianBadge("guardian-messenger", "守护神使者", "silver", 3),
-        new GuardianBadge("guardian-nine", "九蛙守护者", "gold", 9)
-    );
 
     private final GuardianGameMapper mapper;
     private final ContentCatalogService content;
     private final ObjectMapper objectMapper;
     private final BadgeService badgeService;
+    private final BadgeCatalog badgeCatalog;
 
     public GuardianGameService(GuardianGameMapper mapper, ContentCatalogService content, ObjectMapper objectMapper,
-        BadgeService badgeService) {
+        BadgeService badgeService, BadgeCatalog badgeCatalog) {
         this.mapper = mapper;
         this.content = content;
         this.objectMapper = objectMapper;
         this.badgeService = badgeService;
+        this.badgeCatalog = badgeCatalog;
     }
 
     @Transactional(readOnly = true)
@@ -58,7 +56,7 @@ public class GuardianGameService {
     public Map<String, Object> draw(String userId, String idempotencyKey) {
         return mutate(userId, idempotencyKey, "draw", () -> {
             LocalDate today = LocalDate.now(GAME_ZONE);
-            Map<String, Object> activeRound = mapper.selectRoundForUpdate(userId);
+            GuardianGameMapper.GuardianRoundRow activeRound = mapper.selectRoundForUpdate(userId);
             if (activeRound != null) {
                 return eventResult(buildProgress(userId, today, true), Map.of(
                     "drawn", false,
@@ -76,8 +74,8 @@ public class GuardianGameService {
             }
 
             Map<String, Object> dailyState = dailyStateForUpdate(userId, today);
-            int drawsUsed = number(RowValues.valueOf(dailyState, "drawsUsed"));
-            boolean shareBonusClaimed = bool(RowValues.valueOf(dailyState, "shareBonusClaimed"));
+            int drawsUsed = drawsUsed(dailyState);
+            boolean shareBonusClaimed = shareBonusClaimed(dailyState);
             if (remainingDraws(drawsUsed, shareBonusClaimed) <= 0) {
                 throw new BusinessException(ErrorCode.CONFLICT, "今日摇一摇次数已用完，分享后可额外获得 1 次");
             }
@@ -99,13 +97,13 @@ public class GuardianGameService {
     public Map<String, Object> answer(String userId, String idempotencyKey, String roundId, String pattern) {
         return mutate(userId, idempotencyKey, "answer", () -> {
             LocalDate today = LocalDate.now(GAME_ZONE);
-            Map<String, Object> round = mapper.selectRoundForUpdate(userId);
+            GuardianGameMapper.GuardianRoundRow round = mapper.selectRoundForUpdate(userId);
             if (round == null) throw new BusinessException(ErrorCode.CONFLICT, "当前没有待回答的守护神题目");
-            if (!String.valueOf(RowValues.valueOf(round, "roundId")).equals(roundId)) {
+            if (!round.getRoundId().equals(roundId)) {
                 throw new BusinessException(ErrorCode.CONFLICT, "守护神题目已更新，请按当前题目作答");
             }
 
-            Map<String, Object> frog = frogById(String.valueOf(RowValues.valueOf(round, "frogId")));
+            Map<String, Object> frog = frogById(round.getFrogId());
             if (frog == null) throw new BusinessException(ErrorCode.NOT_FOUND, "守护神角色不存在");
             if (!String.valueOf(frog.get("pattern")).equals(pattern)) {
                 return eventResult(buildProgress(userId, today, true), Map.of(
@@ -131,7 +129,7 @@ public class GuardianGameService {
         return mutate(userId, idempotencyKey, "share", () -> {
             LocalDate today = LocalDate.now(GAME_ZONE);
             Map<String, Object> dailyState = dailyStateForUpdate(userId, today);
-            if (bool(RowValues.valueOf(dailyState, "shareBonusClaimed"))) {
+            if (shareBonusClaimed(dailyState)) {
                 throw new BusinessException(ErrorCode.CONFLICT, "今日分享额外次数已领取");
             }
             mapper.claimShareBonus(userId, today);
@@ -161,10 +159,10 @@ public class GuardianGameService {
 
     private Map<String, Object> buildProgress(String userId, LocalDate date, boolean lockRound) {
         Map<String, Object> dailyState = lockRound ? dailyStateForUpdate(userId, date) : mapper.selectDailyState(userId, date);
-        int drawsUsed = dailyState == null ? 0 : number(RowValues.valueOf(dailyState, "drawsUsed"));
-        boolean shareBonusClaimed = dailyState != null && bool(RowValues.valueOf(dailyState, "shareBonusClaimed"));
+        int drawsUsed = dailyState == null ? 0 : drawsUsed(dailyState);
+        boolean shareBonusClaimed = dailyState != null && shareBonusClaimed(dailyState);
         List<String> collectedIds = mapper.selectCollectedFrogIds(userId);
-        Map<String, Object> round = lockRound ? mapper.selectRoundForUpdate(userId) : mapper.selectRound(userId);
+        GuardianGameMapper.GuardianRoundRow round = lockRound ? mapper.selectRoundForUpdate(userId) : mapper.selectRound(userId);
         List<Map<String, Object>> frogs = formalFrogs();
         Map<String, Object> state = new LinkedHashMap<>();
         state.put("gameDate", date);
@@ -204,15 +202,33 @@ public class GuardianGameService {
         if (idempotencyKey == null || idempotencyKey.isBlank()) return operation.get();
         Map<String, Object> existing = mapper.selectEvent(userId, idempotencyKey);
         if (existing != null) {
-            if (!eventType.equals(String.valueOf(RowValues.valueOf(existing, "eventType")))) {
-                throw new BusinessException(ErrorCode.CONFLICT, "幂等键不能用于不同的守护神操作");
-            }
-            Map<String, Object> response = readMap(String.valueOf(RowValues.valueOf(existing, "responseJson")));
-            response.put("duplicated", true);
-            return response;
+            return storedResult(existing, eventType);
         }
-        Map<String, Object> response = operation.get();
-        mapper.insertEvent(userId, idempotencyKey, eventType, writeJson(response));
+        Map<String, Object> response;
+        try {
+            response = operation.get();
+        } catch (BusinessException error) {
+            // 操作因并发先至而失败（如分享奖励已被同键请求领取）时，返回已存结果而不是冲突。
+            Map<String, Object> recorded = mapper.selectEvent(userId, idempotencyKey);
+            if (recorded != null) return storedResult(recorded, eventType);
+            throw error;
+        }
+        try {
+            mapper.insertEvent(userId, idempotencyKey, eventType, writeJson(response));
+        } catch (DuplicateKeyException error) {
+            // 并发同键：另一事务已记录响应，返回已存结果而不是报 500。
+            Map<String, Object> recorded = mapper.selectEvent(userId, idempotencyKey);
+            if (recorded != null) return storedResult(recorded, eventType);
+        }
+        return response;
+    }
+
+    private Map<String, Object> storedResult(Map<String, Object> row, String eventType) {
+        if (!eventType.equals(String.valueOf(row.get("eventType")))) {
+            throw new BusinessException(ErrorCode.CONFLICT, "幂等键不能用于不同的守护神操作");
+        }
+        Map<String, Object> response = readMap(String.valueOf(row.get("responseJson")));
+        response.put("duplicated", true);
         return response;
     }
 
@@ -221,6 +237,14 @@ public class GuardianGameService {
         if (state != null) return state;
         mapper.insertDailyState(userId, date);
         return mapper.selectDailyStateForUpdate(userId, date);
+    }
+
+    private static int drawsUsed(Map<String, Object> dailyState) {
+        return ((Number) dailyState.get("drawsUsed")).intValue();
+    }
+
+    private static boolean shareBonusClaimed(Map<String, Object> dailyState) {
+        return ((Number) dailyState.get("shareBonusClaimed")).intValue() == 1;
     }
 
     private List<Map<String, Object>> formalFrogs() {
@@ -252,17 +276,17 @@ public class GuardianGameService {
             .toList();
     }
 
-    private Map<String, Object> challengeFor(Map<String, Object> round) {
-        Map<String, Object> frog = frogById(String.valueOf(RowValues.valueOf(round, "frogId")));
+    private Map<String, Object> challengeFor(GuardianGameMapper.GuardianRoundRow round) {
+        Map<String, Object> frog = frogById(round.getFrogId());
         if (frog == null) throw new BusinessException(ErrorCode.NOT_FOUND, "守护神角色不存在");
         Map<String, Object> challenge = new LinkedHashMap<>();
-        challenge.put("roundId", RowValues.valueOf(round, "roundId"));
+        challenge.put("roundId", round.getRoundId());
         challenge.put("frogId", frog.get("id"));
         challenge.put("name", frog.get("name"));
         challenge.put("shortName", frog.get("shortName"));
         challenge.put("assetUrl", frog.get("assetUrl"));
-        challenge.put("options", readOptions(String.valueOf(RowValues.valueOf(round, "optionsJson"))));
-        challenge.put("createdAt", RowValues.valueOf(round, "createdAt"));
+        challenge.put("options", readOptions(round.getOptionsJson()));
+        challenge.put("createdAt", round.getCreatedAt());
         return challenge;
     }
 
@@ -277,13 +301,17 @@ public class GuardianGameService {
         return card;
     }
 
+    /** 守护神三档徽章与全站徽章目录同源（badges.json 里 condition.type=guardian 的三条）。 */
     private List<Map<String, Object>> guardianBadgeStates(int collectionCount) {
-        return GUARDIAN_BADGES.stream().map(badge -> Map.<String, Object>of(
-            "id", badge.id(),
-            "name", badge.name(),
-            "level", badge.level(),
-            "unlocked", collectionCount >= badge.requiredCollectionCount()
-        )).toList();
+        List<Map<String, Object>> states = new ArrayList<>();
+        for (BadgeCatalog.Badge badge : badgeCatalog.byConditionType("guardian")) {
+            states.add(Map.of(
+                "id", badge.id(),
+                "name", badge.name(),
+                "level", badge.level(),
+                "unlocked", collectionCount >= badge.condition().count()));
+        }
+        return states;
     }
 
     private int remainingDraws(int drawsUsed, boolean shareBonusClaimed) {
@@ -321,14 +349,4 @@ public class GuardianGameService {
             throw new IllegalStateException("守护神幂等结果读取失败", error);
         }
     }
-
-    private static int number(Object value) {
-        return value instanceof Number number ? number.intValue() : Integer.parseInt(String.valueOf(value));
-    }
-
-    private static boolean bool(Object value) {
-        return value instanceof Boolean bool ? bool : "1".equals(String.valueOf(value)) || Boolean.parseBoolean(String.valueOf(value));
-    }
-
-    private record GuardianBadge(String id, String name, String level, int requiredCollectionCount) { }
 }

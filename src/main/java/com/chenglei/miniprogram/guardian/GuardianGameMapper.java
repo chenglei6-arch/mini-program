@@ -1,5 +1,6 @@
 package com.chenglei.miniprogram.guardian;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -13,11 +14,14 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface GuardianGameMapper {
 
-    @Select("SELECT game_date AS gameDate, draws_used AS drawsUsed, share_bonus_claimed AS shareBonusClaimed "
+    @Select("SELECT draws_used AS \"drawsUsed\", "
+        + "CASE WHEN share_bonus_claimed = 1 THEN 1 ELSE 0 END AS \"shareBonusClaimed\" "
         + "FROM guardian_daily_state WHERE user_id=#{userId} AND game_date=#{gameDate} FOR UPDATE")
-    Map<String, Object> selectDailyStateForUpdate(@Param("userId") String userId, @Param("gameDate") LocalDate gameDate);
+    Map<String, Object> selectDailyStateForUpdate(@Param("userId") String userId,
+        @Param("gameDate") LocalDate gameDate);
 
-    @Select("SELECT game_date AS gameDate, draws_used AS drawsUsed, share_bonus_claimed AS shareBonusClaimed "
+    @Select("SELECT draws_used AS \"drawsUsed\", "
+        + "CASE WHEN share_bonus_claimed = 1 THEN 1 ELSE 0 END AS \"shareBonusClaimed\" "
         + "FROM guardian_daily_state WHERE user_id=#{userId} AND game_date=#{gameDate}")
     Map<String, Object> selectDailyState(@Param("userId") String userId, @Param("gameDate") LocalDate gameDate);
 
@@ -40,13 +44,13 @@ public interface GuardianGameMapper {
     @Insert("INSERT INTO guardian_collection (user_id, frog_id) VALUES (#{userId}, #{frogId})")
     int insertCollection(@Param("userId") String userId, @Param("frogId") String frogId);
 
-    @Select("SELECT round_id AS roundId, frog_id AS frogId, options_json AS optionsJson, created_at AS createdAt "
-        + "FROM guardian_round WHERE user_id=#{userId} FOR UPDATE")
-    Map<String, Object> selectRoundForUpdate(@Param("userId") String userId);
+    @Select("SELECT round_id AS \"roundId\", frog_id AS \"frogId\", options_json AS \"optionsJson\", "
+        + "created_at AS \"createdAt\" FROM guardian_round WHERE user_id=#{userId} FOR UPDATE")
+    GuardianRoundRow selectRoundForUpdate(@Param("userId") String userId);
 
-    @Select("SELECT round_id AS roundId, frog_id AS frogId, options_json AS optionsJson, created_at AS createdAt "
-        + "FROM guardian_round WHERE user_id=#{userId}")
-    Map<String, Object> selectRound(@Param("userId") String userId);
+    @Select("SELECT round_id AS \"roundId\", frog_id AS \"frogId\", options_json AS \"optionsJson\", "
+        + "created_at AS \"createdAt\" FROM guardian_round WHERE user_id=#{userId}")
+    GuardianRoundRow selectRound(@Param("userId") String userId);
 
     @Insert("INSERT INTO guardian_round (user_id, round_id, frog_id, options_json) "
         + "VALUES (#{userId}, #{roundId}, #{frogId}, #{optionsJson})")
@@ -56,7 +60,7 @@ public interface GuardianGameMapper {
     @Delete("DELETE FROM guardian_round WHERE user_id=#{userId}")
     int deleteRound(@Param("userId") String userId);
 
-    @Select("SELECT event_type AS eventType, response_json AS responseJson FROM guardian_event "
+    @Select("SELECT event_type AS \"eventType\", response_json AS \"responseJson\" FROM guardian_event "
         + "WHERE user_id=#{userId} AND event_key=#{eventKey}")
     Map<String, Object> selectEvent(@Param("userId") String userId, @Param("eventKey") String eventKey);
 
@@ -64,4 +68,28 @@ public interface GuardianGameMapper {
         + "VALUES (#{userId}, #{eventKey}, #{eventType}, #{responseJson})")
     int insertEvent(@Param("userId") String userId, @Param("eventKey") String eventKey,
         @Param("eventType") String eventType, @Param("responseJson") String responseJson);
+
+    /** created_at 由 MyBatis 的 InstantTypeHandler 统一转换。 */
+    class GuardianRoundRow {
+        private String roundId;
+        private String frogId;
+        private String optionsJson;
+        private Instant createdAt;
+
+        public String getRoundId() {
+            return roundId;
+        }
+
+        public String getFrogId() {
+            return frogId;
+        }
+
+        public String getOptionsJson() {
+            return optionsJson;
+        }
+
+        public Instant getCreatedAt() {
+            return createdAt;
+        }
+    }
 }

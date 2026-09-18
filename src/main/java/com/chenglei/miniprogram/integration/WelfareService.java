@@ -1,9 +1,7 @@
 package com.chenglei.miniprogram.integration;
 
-import com.chenglei.miniprogram.common.db.RowValues;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,12 +25,12 @@ public class WelfareService {
     public Map<String, Object> summary() {
         Map<String, Object> response = new LinkedHashMap<>(content.welfare());
         List<Map<String, Object>> reports = new ArrayList<>();
-        for (Map<String, Object> row : content.welfareReports()) {
-            Map<String, Object> item = new LinkedHashMap<>(row);
-            Object publishedAt = RowValues.valueOf(row, "publishedAt");
-            item.put("date", publishedAt instanceof Date date
-                ? date.toInstant().atZone(ZONE).toLocalDate().toString()
-                : String.valueOf(publishedAt));
+        for (ContentCatalogMapper.WelfareReportRow row : content.welfareReports()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", row.getId());
+            item.put("title", row.getTitle());
+            item.put("summary", row.getSummary());
+            item.put("date", row.getPublishedAt().atZone(ZONE).toLocalDate().toString());
             reports.add(item);
         }
         response.put("reports", reports);

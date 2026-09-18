@@ -43,10 +43,7 @@ public class SecurityConfig {
                     "/v1/auth/**",
                     "/assets/**",
                     "/actuator/health/**",
-                    "/actuator/info",
-                    "/v3/api-docs/**",
-                    "/swagger-ui.html",
-                    "/swagger-ui/**"
+                    "/actuator/info"
                 ).permitAll()
                 .anyRequest().authenticated());
         return http.build();
