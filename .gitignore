@@ -24,3 +24,10 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Design sources (archival only, never commit)
+# 分层工程文件与设计归档；运行时素材 assets/ 必须入库，勿加到这里
+*.psb
+*.psd
+*.ai
+design-sources/
