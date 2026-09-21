@@ -582,7 +582,7 @@ class MiniProgramBackendApplicationTests {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.total").value(1))
             .andExpect(jsonPath("$.data.items[0].orderNo").value(orderNo))
-            .andExpect(jsonPath("$.data.items[0].productName").value("林小蛙剪纸盲盒"))
+            .andExpect(jsonPath("$.data.items[0].productName").value("“林小蛙”潮玩盲盒"))
             .andExpect(jsonPath("$.data.items[0].createdAt").isNotEmpty());
     }
 
