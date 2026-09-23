@@ -1,0 +1,28 @@
+[Unit]
+Description=Mini Program Backend (纸韵蛙鸣小程序后端)
+Documentation=file:/opt/mini-program-backend/README.md
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=appuser
+Group=appuser
+WorkingDirectory=/opt/mini-program-backend
+# 生产配置由部署平台注入，不随 jar 一起分发
+EnvironmentFile=/opt/mini-program-backend/.env
+ExecStart=/usr/bin/java -XX:MaxRAMPercentage=75 -jar /opt/mini-program-backend/app.jar
+Restart=always
+RestartSec=10
+# Spring Boot 优雅停机，与 server.shutdown=graceful 配套
+SuccessExitStatus=143
+TimeoutStopSec=30
+
+# 基础加固：只读文件系统视图 + 私有 /tmp
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
