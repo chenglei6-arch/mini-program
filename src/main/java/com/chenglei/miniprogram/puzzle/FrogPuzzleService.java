@@ -4,6 +4,7 @@ import com.chenglei.miniprogram.badge.BadgeService;
 import com.chenglei.miniprogram.common.error.BusinessException;
 import com.chenglei.miniprogram.common.error.ErrorCode;
 import com.chenglei.miniprogram.common.storage.GameProgressStore;
+import com.chenglei.miniprogram.file.OssStorageService;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -34,16 +35,18 @@ public class FrogPuzzleService {
     private final BadgeService badgeService;
     private final FrogPuzzleStateJson stateJson;
     private final ObjectMapper objectMapper;
+    private final OssStorageService storage;
     /** 全部组件 ID：当前解锁规则为"全部解锁"，与用户无关，启动时算一次。 */
     private Set<String> allComponentIds = Set.of();
     private Map<String, FrogComponentData> frogComponents;
 
     public FrogPuzzleService(GameProgressStore store, BadgeService badgeService, FrogPuzzleStateJson stateJson,
-        ObjectMapper objectMapper) {
+        ObjectMapper objectMapper, OssStorageService storage) {
         this.store = store;
         this.badgeService = badgeService;
         this.stateJson = stateJson;
         this.objectMapper = objectMapper;
+        this.storage = storage;
         loadComponents();
     }
 
@@ -57,7 +60,7 @@ public class FrogPuzzleService {
             Map<String, Object> componentMap = new HashMap<>();
             componentMap.put("id", comp.id());
             componentMap.put("name", comp.name());
-            componentMap.put("assetUrl", comp.assetUrl());
+            componentMap.put("assetUrl", storage.publicUrl(comp.assetUrl()));
             componentMap.put("order", comp.order());
             componentMap.put("unlocked", allComponentIds.contains(comp.id()));
             components.add(componentMap);

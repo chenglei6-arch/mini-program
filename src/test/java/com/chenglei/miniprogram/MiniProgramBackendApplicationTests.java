@@ -123,7 +123,7 @@ class MiniProgramBackendApplicationTests {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.brand").value("蛙声说部·哈什蚂传奇"))
             .andExpect(jsonPath("$.data.games").isArray())
-            .andExpect(jsonPath("$.data.frogs[0].assetUrl").value("/assets/frogs/forest.png"));
+            .andExpect(jsonPath("$.data.frogs[0].assetUrl").value("https://assets.test.local/assets/frogs/forest.png"));
 
 
         mockMvc.perform(get("/v1/content/frogs").header("Authorization", "Bearer " + token))
@@ -139,7 +139,7 @@ class MiniProgramBackendApplicationTests {
         mockMvc.perform(get("/v1/content/frogs/hibernation").header("Authorization", "Bearer " + token))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.name").value("冬眠蛙"))
-            .andExpect(jsonPath("$.data.assetUrl").value("/assets/frogs/hibernation.png"))
+            .andExpect(jsonPath("$.data.assetUrl").value("https://assets.test.local/assets/frogs/hibernation.png"))
             .andExpect(jsonPath("$.data.sections[0].heading").value("一、整体构图"))
             .andExpect(jsonPath("$.data.sections[0].paragraphs[0]").isString());
 

@@ -8,6 +8,10 @@
   **已移出仓库**（见仓库根 `.gitignore`）：本机开发时文件照常放在本目录，新克隆没有这些图，
   需从 OSS/CDN 拉取，或按 `design-sources/README.md` 从设计源文件（2048 整图）重新导出并归一化。
 - `GET /v1/content/frogs` 返回稳定的 `assetUrl`（相对路径 `/assets/frogs/{id}.png`），由小程序端拼接域名。
+- **已上传 OSS**（2026-09-22）：九张图在 `oss://mini-program-wawa/assets/frogs/`，
+  公网地址形如 `https://mini-program-wawa.oss-cn-beijing.aliyuncs.com/assets/frogs/{id}.png`
+  （对象键与 `assetUrl` 相对路径一致，前端把资源域名从后端换成 OSS 域名即可）。
+  对象为 public-read + 1 天浏览器缓存；重新上传用 `deploy/tools/UploadStaticAssets.java`。
 
 ## 已移出运行时
 

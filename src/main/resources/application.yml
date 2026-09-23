@@ -21,6 +21,10 @@ spring:
   jackson:
     time-zone: Asia/Shanghai
     default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: ${UPLOAD_MAX_FILE_SIZE:20MB}
+      max-request-size: ${UPLOAD_MAX_REQUEST_SIZE:25MB}
   lifecycle:
     timeout-per-shutdown-phase: 20s
 
@@ -60,6 +64,16 @@ app:
     include-test-data: ${CONTENT_INCLUDE_TEST_DATA:false}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+  oss:
+    endpoint: ${OSS_ENDPOINT:oss-cn-beijing.aliyuncs.com}
+    # v2 SDK 必填；留空时会从 endpoint 自动推导（oss-cn-beijing -> cn-beijing）。
+    region: ${OSS_REGION:}
+    bucket: ${OSS_BUCKET:mini-program-wawa}
+    # 留空时回退到 v2 默认环境变量 OSS_ACCESS_KEY_ID / OSS_ACCESS_KEY_SECRET。
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    # 文件访问公网地址（bucket 虚拟主机形式）；留空时按 https://{bucket}.{endpoint} 推导。
+    public-base-url: ${OSS_PUBLIC_BASE_URL:}
 
 logging:
   level:

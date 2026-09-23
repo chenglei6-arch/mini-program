@@ -10,3 +10,9 @@ spring:
 app:
   cors:
     allowed-origins: http://localhost
+  # 本文件会遮蔽主 application.yml，app.oss 需在此显式给出，OSSClient Bean 才能完成 region 推导。
+  oss:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    bucket: test-bucket
+    # assetUrl 断言依赖确定性的公网地址，测试里显式固定。
+    public-base-url: https://assets.test.local

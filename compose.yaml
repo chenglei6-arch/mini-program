@@ -25,7 +25,14 @@ services:
     profiles: ["app"]
     build:
       context: .
+    # 打上固定镜像名，服务器上 docker load 后 up --no-build 直接使用，不会在 1G 内存的
+    # 服务器上误触发 Maven 构建。
+    image: mini-program-backend:latest
     restart: unless-stopped
+    # 把同目录 .env 的全部变量（WECHAT、OSS_* 等）注入容器；
+    # 下面 environment 里的 DB_URL 优先级更高，仍指向容器内的 mysql 服务。
+    env_file:
+      - .env
     environment:
       DB_URL: jdbc:mysql://mysql:3306/${DB_NAME:-mini_program}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
       DB_USERNAME: ${DB_USERNAME:-mini_program_app}

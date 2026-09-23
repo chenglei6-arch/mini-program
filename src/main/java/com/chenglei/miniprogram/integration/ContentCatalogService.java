@@ -1,5 +1,6 @@
 package com.chenglei.miniprogram.integration;
 
+import com.chenglei.miniprogram.file.OssStorageService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,28 +15,32 @@ import org.springframework.stereotype.Service;
 /**
  * 首页、角色与公益内容的目录读取。
  * 角色设计说明是静态内容，随包放在 classpath 内容文件里，不进数据库。
+ * assetUrl 在库里只存 /assets/... 相对路径，出接口前统一合成 OSS 完整 URL。
  */
 @Service
 public class ContentCatalogService {
 
     private final ContentCatalogMapper mapper;
+    private final OssStorageService storage;
     private final boolean includeTestData;
     private final Map<String, List<Map<String, Object>>> frogSections;
 
-    public ContentCatalogService(ContentCatalogMapper mapper, ObjectMapper objectMapper,
+    public ContentCatalogService(ContentCatalogMapper mapper, OssStorageService storage, ObjectMapper objectMapper,
         @Value("${app.content.include-test-data:false}") boolean includeTestData) {
         this.mapper = mapper;
+        this.storage = storage;
         this.includeTestData = includeTestData;
         this.frogSections = loadFrogSections(objectMapper);
     }
 
     public List<Map<String, Object>> frogs() {
-        return mapper.selectFrogs(includeTestData);
+        return withPublicAssetUrls(mapper.selectFrogs(includeTestData));
     }
 
     public Map<String, Object> frog(String id) {
         Map<String, Object> frog = mapper.selectFrog(id, includeTestData);
         if (frog == null) return null;
+        frog.computeIfPresent("assetUrl", (key, value) -> storage.publicUrl(String.valueOf(value)));
         frog.put("sections", frogSections.get(id));
         return frog;
     }
@@ -45,7 +50,7 @@ public class ContentCatalogService {
     }
 
     public List<Map<String, Object>> guardianFrogs() {
-        return mapper.selectFrogs(false);
+        return withPublicAssetUrls(mapper.selectFrogs(false));
     }
 
     public Map<String, String> homeConfig() {
@@ -58,6 +63,12 @@ public class ContentCatalogService {
 
     public List<ContentCatalogMapper.WelfareReportRow> welfareReports() {
         return mapper.selectWelfareReports();
+    }
+
+    private List<Map<String, Object>> withPublicAssetUrls(List<Map<String, Object>> frogs) {
+        frogs.forEach(frog -> frog.computeIfPresent("assetUrl",
+            (key, value) -> storage.publicUrl(String.valueOf(value))));
+        return frogs;
     }
 
     private static Map<String, List<Map<String, Object>>> loadFrogSections(ObjectMapper objectMapper) {
